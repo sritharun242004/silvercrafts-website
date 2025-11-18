@@ -12,49 +12,57 @@ async function resetAdmin() {
   try {
     console.log("🔄 Resetting admin user...");
 
+    // Ensure email is lowercase to match auth.ts behavior
+    const adminEmail = "admin@silvercrafts.com".toLowerCase();
+    const adminPassword = "admin123";
+
     // Check if admin user exists
     const existingAdmin = await prisma.user.findUnique({
-      where: { email: "admin@silvercrafts.com" },
+      where: { email: adminEmail },
     });
 
     if (existingAdmin) {
       console.log("👤 Admin user found, updating password...");
 
       // Hash the new password
-      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
       // Update the admin user
       const updatedAdmin = await prisma.user.update({
-        where: { email: "admin@silvercrafts.com" },
+        where: { email: adminEmail },
         data: {
           password: hashedPassword,
           role: "ADMIN",
+          isTemporary: false,
+          isActive: true,
         },
       });
 
       console.log("✅ Admin user updated successfully!");
       console.log(`📧 Email: ${updatedAdmin.email}`);
-      console.log(`🔑 Password: admin123`);
+      console.log(`🔑 Password: ${adminPassword}`);
       console.log(`👑 Role: ${updatedAdmin.role}`);
     } else {
       console.log("➕ Creating new admin user...");
 
       // Hash the password
-      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
       // Create new admin user
       const newAdmin = await prisma.user.create({
         data: {
           name: "Admin User",
-          email: "admin@silvercrafts.com",
+          email: adminEmail,
           password: hashedPassword,
           role: "ADMIN",
+          isTemporary: false,
+          isActive: true,
         },
       });
 
       console.log("✅ Admin user created successfully!");
       console.log(`📧 Email: ${newAdmin.email}`);
-      console.log(`🔑 Password: admin123`);
+      console.log(`🔑 Password: ${adminPassword}`);
       console.log(`👑 Role: ${newAdmin.role}`);
     }
 

@@ -19,9 +19,14 @@ export const config = {
           return null;
         }
 
+        // Ensure email is lowercase for consistent lookup
+        const normalizedEmail = (credentials.email as string)
+          .toLowerCase()
+          .trim();
+
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email as string,
+            email: normalizedEmail,
           },
         });
 

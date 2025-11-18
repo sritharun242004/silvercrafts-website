@@ -24,8 +24,11 @@ const config: NextAuthConfig = {
         try {
           const { email, password } = loginSchema.parse(credentials);
 
+          // Ensure email is lowercase for consistent lookup
+          const normalizedEmail = email.toLowerCase().trim();
+
           const user = await prisma.user.findUnique({
-            where: { email: email.toLowerCase() },
+            where: { email: normalizedEmail },
           });
 
           console.log(

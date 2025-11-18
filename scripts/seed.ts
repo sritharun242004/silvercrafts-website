@@ -7,8 +7,11 @@ async function main() {
   console.log("🌱 Seeding database...");
 
   // Get admin credentials from environment variables
-  const adminEmail = process.env.ADMIN_EMAIL || "admin@silvercrafts.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "admin123!";
+  // Ensure email is lowercase to match auth.ts behavior
+  const adminEmail = (
+    process.env.ADMIN_EMAIL || "admin@silvercrafts.com"
+  ).toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
 
   // Check if admin already exists
   const existingAdmin = await prisma.user.findUnique({
@@ -16,7 +19,23 @@ async function main() {
   });
 
   if (existingAdmin) {
-    console.log("ℹ️  Admin user already exists");
+    console.log("ℹ️  Admin user found, updating password...");
+
+    // Update password to ensure it matches the expected value
+    const hashedPassword = await bcrypt.hash(adminPassword, 12);
+
+    await prisma.user.update({
+      where: { email: adminEmail },
+      data: {
+        password: hashedPassword,
+        role: "ADMIN",
+        isTemporary: false,
+        isActive: true,
+      },
+    });
+
+    console.log(`✅ Admin user updated: ${adminEmail}`);
+    console.log(`🔑 Password: ${adminPassword}`);
   } else {
     const hashedPassword = await bcrypt.hash(adminPassword, 12);
 
