@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -26,7 +27,7 @@ export default function Contact() {
 
     // Simulate form submission
     setTimeout(() => {
-      alert("Thank you for contacting us. We'll get back to you within 24 hours.");
+      toast.success("Thank you for contacting us. We'll get back to you within 24 hours.");
       setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
       setLoading(false);
     }, 1000);

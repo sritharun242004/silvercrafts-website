@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-
-const prisma = new PrismaClient();
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email format"),
+  role: z.enum(["USER", "ADMIN"]).optional().default("USER"),
+  companyName: z.string().optional(),
+  gstNo: z.string().optional(),
 });
 
 function generateTemporaryPassword(): string {
@@ -36,6 +37,8 @@ export async function GET() {
         name: true,
         email: true,
         role: true,
+        companyName: true,
+        gstNo: true,
         isActive: true,
         isTemporary: true,
         createdAt: true,
@@ -66,7 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email } = createUserSchema.parse(body);
+    const { name, email, role, companyName, gstNo } = createUserSchema.parse(body);
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -90,7 +93,9 @@ export async function POST(request: NextRequest) {
         name,
         email: email.toLowerCase(),
         password: hashedPassword,
-        role: "USER",
+        role: role || "USER",
+        companyName: companyName || null,
+        gstNo: gstNo || null,
         isTemporary: true,
         isActive: true,
       },
@@ -99,6 +104,8 @@ export async function POST(request: NextRequest) {
         name: true,
         email: true,
         role: true,
+        companyName: true,
+        gstNo: true,
         isActive: true,
         isTemporary: true,
         createdAt: true,

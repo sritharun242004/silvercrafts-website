@@ -7,6 +7,8 @@ declare module "next-auth" {
       id: string;
       role: string;
       isTemporary: boolean;
+      companyName?: string | null;
+      gstNo?: string | null;
     } & DefaultSession["user"];
   }
 
@@ -16,6 +18,8 @@ declare module "next-auth" {
     name: string;
     role: string;
     isTemporary: boolean;
+    companyName?: string | null;
+    gstNo?: string | null;
   }
 }
 
@@ -23,5 +27,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     role: string;
     isTemporary: boolean;
+    companyName?: string | null;
+    gstNo?: string | null;
   }
 }

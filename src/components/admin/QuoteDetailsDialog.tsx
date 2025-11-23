@@ -24,7 +24,7 @@ import {
 interface QuoteProduct {
   productName: string;
   quantity: number;
-  specifications?: string;
+  category?: string;
 }
 
 interface QuoteRequest {
@@ -36,6 +36,8 @@ interface QuoteRequest {
   message?: string;
   status: "pending" | "sent" | "rejected";
   createdAt: string;
+  businessName?: string;
+  gstin?: string;
 }
 
 interface QuoteDetailsDialogProps {
@@ -152,8 +154,25 @@ const QuoteDetailsDialog = ({
                 </div>
                 <div className="flex gap-2">
                   <span className="font-medium w-24">Phone:</span>
-                  <span>{quote.customerPhone}</span>
+                  <span>{quote.customerPhone || "Not provided"}</span>
                 </div>
+                {(quote.businessName || quote.gstin) && (
+                  <div className="mt-4 pt-4 border-t border-gray-300">
+                    <h4 className="font-semibold mb-2">Company Details</h4>
+                    {quote.businessName && (
+                      <div className="flex gap-2">
+                        <span className="font-medium w-24">Company Name:</span>
+                        <span>{quote.businessName}</span>
+                      </div>
+                    )}
+                    {quote.gstin && (
+                      <div className="flex gap-2">
+                        <span className="font-medium w-24">GST Number:</span>
+                        <span>{quote.gstin}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <span className="font-medium w-24">Requested:</span>
                   <span>{new Date(quote.createdAt).toLocaleString()}</span>
@@ -193,8 +212,7 @@ const QuoteDetailsDialog = ({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product Name</TableHead>
-                      <TableHead className="text-center">Quantity</TableHead>
-                      <TableHead>Specifications</TableHead>
+                      <TableHead>Category</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -203,12 +221,9 @@ const QuoteDetailsDialog = ({
                         <TableCell className="font-medium">
                           {product.productName}
                         </TableCell>
-                        <TableCell className="text-center">
-                          {product.quantity}
-                        </TableCell>
                         <TableCell>
-                          {product.specifications || (
-                            <span className="text-gray-400">None</span>
+                          {product.category || (
+                            <span className="text-gray-400">N/A</span>
                           )}
                         </TableCell>
                       </TableRow>

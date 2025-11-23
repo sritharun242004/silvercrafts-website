@@ -60,6 +60,28 @@
   }
 }
 
+@layer base {
+  body {
+    font-family: var(--font-poppins), 'Poppins', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Hide scrollbar globally */
+  html {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  html::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  
+  body {
+    overflow-x: hidden; /* Prevent horizontal scroll */
+  }
+}
+
 /* Luxury Jewelry Design System - SilverCrafts
 All colors MUST be HSL. Sophisticated color palette with navy, gold, and premium neutrals.
 */
@@ -204,5 +226,150 @@ All colors MUST be HSL. Sophisticated color palette with navy, gold, and premium
   }
   .shadow-gold {
     box-shadow: 0 4px 20px -8px hsl(43 74% 52% / 0.4);
+  }
+}
+
+/* Animations for new pages */
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.8s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out forwards;
+  }
+
+  .animate-on-scroll {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+  }
+
+  .animate-on-scroll.animate-fade-in-up {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .confetti-explosion {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  .confetti-explosion::before,
+  .confetti-explosion::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: #a8bba3;
+    border-radius: 50%;
+    animation: confetti 2s ease-out;
+  }
+
+  @keyframes confetti {
+    0% {
+      transform: translate(0, 0) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--x, 100px), var(--y, 100px)) rotate(720deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes scroll-left {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-scroll-left {
+    animation: scroll-left 45s linear infinite;
+  }
+
+  .animate-scroll-left:hover {
+    animation-play-state: paused;
+  }
+
+  @keyframes scroll-up {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-50%);
+    }
+  }
+
+  @keyframes scroll-down {
+    0% {
+      transform: translateY(-50%);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  .animate-scroll-up {
+    animation: scroll-up 50s linear infinite;
+  }
+
+  .animate-scroll-down {
+    animation: scroll-down 50s linear infinite;
+  }
+
+  .animate-scroll-up-fast {
+    animation: scroll-up 25s linear infinite;
+  }
+
+  .animate-scroll-down-fast {
+    animation: scroll-down 25s linear infinite;
+  }
+
+  .animate-scroll-up:hover,
+  .animate-scroll-down:hover {
+    animation-play-state: paused;
+  }
+
+  .\[animation-play-state\:paused\] {
+    animation-play-state: paused !important;
   }
 }

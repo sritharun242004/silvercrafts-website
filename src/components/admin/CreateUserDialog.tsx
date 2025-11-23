@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,26 +22,52 @@ import {
 } from "@/components/ui/card";
 import { Loader2, Copy, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface CreateUserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onUserCreated: () => void;
+  mode?: 'create' | 'reset';
+  resetUserData?: {
+    user: any;
+    temporaryPassword: string;
+  } | null;
 }
 
 export default function CreateUserDialog({
   open,
   onOpenChange,
   onUserCreated,
+  mode = 'create',
+  resetUserData = null,
 }: CreateUserDialogProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<"USER" | "ADMIN">("USER");
+  const [companyName, setCompanyName] = useState("");
+  const [gstNo, setGstNo] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [createdUser, setCreatedUser] = useState<{
     user: any;
     temporaryPassword: string;
   } | null>(null);
+
+  // When resetUserData is provided, show it immediately
+  useEffect(() => {
+    if (resetUserData && mode === 'reset') {
+      setCreatedUser(resetUserData);
+    } else if (!resetUserData && mode === 'reset') {
+      setCreatedUser(null);
+    }
+  }, [resetUserData, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +83,9 @@ export default function CreateUserDialog({
         body: JSON.stringify({
           name,
           email,
+          role,
+          companyName: companyName.trim() || undefined,
+          gstNo: gstNo.trim() || undefined,
         }),
       });
 
@@ -79,10 +108,13 @@ export default function CreateUserDialog({
   const handleClose = () => {
     setName("");
     setEmail("");
+    setRole("USER");
+    setCompanyName("");
+    setGstNo("");
     setError("");
     setCreatedUser(null);
     onOpenChange(false);
-    if (createdUser) {
+    if (createdUser || resetUserData) {
       onUserCreated();
     }
   };
@@ -92,10 +124,14 @@ export default function CreateUserDialog({
     toast.success("Copied to clipboard!");
   };
 
+  const isResetMode = mode === 'reset';
+  const showUserData = createdUser || (isResetMode && resetUserData);
+  const displayData = createdUser || resetUserData;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
-        {!createdUser ? (
+        {!showUserData ? (
           <>
             <DialogHeader>
               <DialogTitle>Create New User</DialogTitle>
@@ -136,6 +172,45 @@ export default function CreateUserDialog({
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="role">Account Type</Label>
+                <Select
+                  value={role}
+                  onValueChange={(value: "USER" | "ADMIN") => setRole(value)}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="role">
+                    <SelectValue placeholder="Select account type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USER">User</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name (Optional)</Label>
+                <Input
+                  id="companyName"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Enter company name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gstNo">GST Number (Optional)</Label>
+                <Input
+                  id="gstNo"
+                  value={gstNo}
+                  onChange={(e) => setGstNo(e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Enter GST number"
+                />
+              </div>
+
               <DialogFooter>
                 <Button
                   type="button"
@@ -163,11 +238,12 @@ export default function CreateUserDialog({
             <DialogHeader>
               <DialogTitle className="flex items-center">
                 <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                User Created Successfully!
+                {isResetMode ? 'Password Reset Successfully!' : 'User Created Successfully!'}
               </DialogTitle>
               <DialogDescription>
-                The user account has been created. Please share the temporary
-                password with the user.
+                {isResetMode 
+                  ? 'The password has been reset. Please share the temporary password with the user.'
+                  : 'The user account has been created. Please share the temporary password with the user.'}
               </DialogDescription>
             </DialogHeader>
 
@@ -179,7 +255,7 @@ export default function CreateUserDialog({
                 <div>
                   <Label className="text-sm font-medium">Name</Label>
                   <p className="text-sm text-gray-600">
-                    {createdUser.user.name}
+                    {displayData?.user.name}
                   </p>
                 </div>
 
@@ -187,12 +263,12 @@ export default function CreateUserDialog({
                   <Label className="text-sm font-medium">Email</Label>
                   <div className="flex items-center space-x-2">
                     <p className="text-sm text-gray-600">
-                      {createdUser.user.email}
+                      {displayData?.user.email}
                     </p>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => copyToClipboard(createdUser.user.email)}
+                      onClick={() => copyToClipboard(displayData?.user.email || '')}
                     >
                       <Copy className="h-3 w-3" />
                     </Button>
@@ -200,18 +276,43 @@ export default function CreateUserDialog({
                 </div>
 
                 <div>
+                  <Label className="text-sm font-medium">Role</Label>
+                  <p className="text-sm text-gray-600">
+                    {displayData?.user.role === 'ADMIN' ? 'Admin' : 'User'}
+                  </p>
+                </div>
+
+                {displayData?.user.companyName && (
+                  <div>
+                    <Label className="text-sm font-medium">Company Name</Label>
+                    <p className="text-sm text-gray-600">
+                      {displayData.user.companyName}
+                    </p>
+                  </div>
+                )}
+
+                {displayData?.user.gstNo && (
+                  <div>
+                    <Label className="text-sm font-medium">GST Number</Label>
+                    <p className="text-sm text-gray-600">
+                      {displayData.user.gstNo}
+                    </p>
+                  </div>
+                )}
+
+                <div>
                   <Label className="text-sm font-medium">
                     Temporary Password
                   </Label>
                   <div className="flex items-center space-x-2">
                     <code className="bg-gray-100 px-2 py-1 rounded text-sm font-mono">
-                      {createdUser.temporaryPassword}
+                      {displayData?.temporaryPassword}
                     </code>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() =>
-                        copyToClipboard(createdUser.temporaryPassword)
+                        copyToClipboard(displayData?.temporaryPassword || '')
                       }
                     >
                       <Copy className="h-3 w-3" />

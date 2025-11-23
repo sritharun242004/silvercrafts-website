@@ -43,10 +43,10 @@ export default function ProductDetail() {
 
   useEffect(() => {
     fetchProductData();
-  }, [params.slug]);
+  }, [params?.slug]);
 
   const fetchProductData = async () => {
-    if (params.slug) {
+    if (params?.slug) {
       const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
       try {

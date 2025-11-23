@@ -26,6 +26,16 @@ import {
   FileText,
   ClipboardList,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import AdminHeader from "@/components/admin/AdminHeader";
 import CreateUserDialog from "@/components/admin/CreateUserDialog";
@@ -33,6 +43,7 @@ import AddProductDialog from "@/components/admin/AddProductDialog";
 import CategoryManagementDialog from "@/components/admin/CategoryManagementDialog";
 import QuoteDetailsDialog from "@/components/admin/QuoteDetailsDialog";
 import OrderDetailsDialog from "@/components/admin/OrderDetailsDialog";
+import UserDetailsDialog from "@/components/admin/UserDetailsDialog";
 
 interface User {
   id: string;
@@ -61,6 +72,7 @@ interface Product {
   price: number;
   image: string;
   category: string;
+  weightRange?: string;
   images?: string[];
   variants?: ProductVariant[];
 }
@@ -73,15 +85,18 @@ interface QuoteRequest {
   products: {
     productName: string;
     quantity: number;
-    specifications?: string;
+    category?: string;
   }[];
   message?: string;
   status: "pending" | "sent" | "rejected";
   createdAt: string;
+  businessName?: string;
+  gstin?: string;
 }
 
 interface Order {
   id: string;
+  orderNumber?: string;
   userId: string;
   customerName: string;
   customerEmail: string;
@@ -91,32 +106,34 @@ interface Order {
     price: number;
   }[];
   totalAmount: number;
-  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  status: "pending" | "processing" | "completed" | "delivered";
   paymentStatus: "pending" | "paid" | "refunded";
   createdAt: string;
   shippingAddress: string;
+  businessName?: string;
+  gstin?: string;
 }
 
 type TabType = "users" | "products" | "quotes" | "orders";
 
 const defaultCategories = [
   "All Categories",
-  "Cutlery Sets",
-  "Dinner Forks",
-  "Dinner Knives",
-  "Dinner Spoons",
-  "Soup Spoons",
-  "Tea Spoons",
-  "Serving Spoons",
-  "Cake Servers",
-  "Serving Trays",
-  "Serving Bowls",
-  "Tea Sets",
-  "Coffee Sets",
-  "Specialty Items",
-  "Gift Sets",
-  "Custom Orders",
-  "Antique Collection",
+  "Vessels",
+  "Lamps",
+  "Coins & Bars",
+  "Bowl",
+  "Boxes",
+  "Chombu",
+  "Cups",
+  "Glass",
+  "Kamakshi",
+  "Kodam",
+  "Others",
+  "Panchapathram",
+  "Plates",
+  "Simil",
+  "Trays",
+  "Vel",
 ];
 
 export default function AdminDashboard() {
@@ -134,12 +151,36 @@ export default function AdminDashboard() {
   const [showCategoryManagement, setShowCategoryManagement] = useState(false);
   const [showQuoteDetails, setShowQuoteDetails] = useState(false);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
+  const [showUserDetails, setShowUserDetails] = useState(false);
   const [selectedQuote, setSelectedQuote] = useState<QuoteRequest | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>("users");
   const [selectedCategory, setSelectedCategory] =
     useState<string>("All Categories");
+  // Alert dialog states
+  const [deleteUserDialog, setDeleteUserDialog] = useState<{
+    open: boolean;
+    userId: string | null;
+  }>({ open: false, userId: null });
+  const [deleteProductDialog, setDeleteProductDialog] = useState<{
+    open: boolean;
+    productId: string | null;
+  }>({ open: false, productId: null });
+  const [deleteQuoteDialog, setDeleteQuoteDialog] = useState<{
+    open: boolean;
+    quoteId: string | null;
+  }>({ open: false, quoteId: null });
+  const [deleteOrderDialog, setDeleteOrderDialog] = useState<{
+    open: boolean;
+    orderId: string | null;
+  }>({ open: false, orderId: null });
+  // Reset password dialog state
+  const [resetPasswordData, setResetPasswordData] = useState<{
+    user: any;
+    temporaryPassword: string;
+  } | null>(null);
 
   // Redirect non-admin users
   useEffect(() => {
@@ -172,9 +213,12 @@ export default function AdminDashboard() {
         const data = await response.json();
         setUsers(data.users);
       } else {
-        toast.error("Failed to fetch users");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to fetch users:", response.status, errorData);
+        toast.error(errorData.error || "Failed to fetch users");
       }
     } catch (error) {
+      console.error("Error fetching users:", error);
       toast.error("Error fetching users");
     } finally {
       setLoading(false);
@@ -182,287 +226,158 @@ export default function AdminDashboard() {
   };
 
   const fetchProducts = async () => {
-    // Mock data - replace with actual API call (prices in INR)
-    const mockProducts: Product[] = [
-      {
-        id: "1",
-        name: "Sterling Silver Fork Set",
-        description: "Elegant 12-piece sterling silver fork set",
-        price: 24899.0,
-        image: "/assets/fork-elegance.jpg",
-        category: "Dinner Forks",
-        variants: [
-          {
-            id: "1-1",
-            weight: "50g",
-            purities: ["80", "92.5"],
-          },
-        ],
-      },
-      {
-        id: "2",
-        name: "Ornate Serving Tray",
-        description: "Handcrafted serving tray with detailed engravings",
-        price: 15749.0,
-        image: "/assets/tray-ornate.jpg",
-        category: "Serving Trays",
-        variants: [
-          {
-            id: "2-1",
-            width: "30cm",
-            height: "40cm",
-            weight: "500g",
-            purities: ["92.5"],
-          },
-        ],
-      },
-      {
-        id: "3",
-        name: "Premium Dinner Knife Set",
-        description: "Professional-grade dinner knives",
-        price: 33199.0,
-        image: "/assets/knife-carved.jpg",
-        category: "Dinner Knives",
-        variants: [
-          {
-            id: "3-1",
-            weight: "75g",
-            purities: ["80"],
-          },
-        ],
-      },
-      {
-        id: "4",
-        name: "Classic Spoon Collection",
-        description: "Traditional sterling silver spoons",
-        price: 20749.0,
-        image: "/assets/spoon-sterling.jpg",
-        category: "Dinner Spoons",
-        variants: [
-          {
-            id: "4-1",
-            weight: "40g",
-            purities: ["80"],
-          },
-        ],
-      },
-      {
-        id: "5",
-        name: "Elegant Tea Set",
-        description: "Complete tea set with intricate designs",
-        price: 49799.0,
-        image: "/assets/tea-set-elegant.jpg",
-        category: "Tea Sets",
-        variants: [
-          {
-            id: "5-1",
-            weight: "800g",
-            purities: ["92.5"],
-          },
-        ],
-      },
-      {
-        id: "6",
-        name: "Soup Spoon Collection",
-        description: "Set of 6 soup spoons",
-        price: 15749.0,
-        image: "/assets/soup-spoons-collection.jpg",
-        category: "Soup Spoons",
-        variants: [
-          {
-            id: "6-1",
-            weight: "45g",
-            purities: ["80", "92.5"],
-          },
-        ],
-      },
-    ];
-    setAllProducts(mockProducts);
-    setProducts(mockProducts);
+    try {
+      const response = await fetch("/api/products");
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Fetched products from API:", data.products?.length || 0);
+        // Transform API products to match admin panel structure
+        const transformedProducts: Product[] = (data.products || []).map(
+          (p: any) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description || "",
+            price: p.price || 0,
+            image: p.image || "/assets/placeholder.jpg",
+            category: p.category,
+            weightRange: p.weightRange || "",
+            images: p.images || [],
+            variants:
+              p.variants?.map((v: any) => ({
+                id: v.id,
+                weight: v.weight,
+                width: v.width || "",
+                height: v.height || "",
+                diameter: v.diameter || "",
+                purities: v.purities || [],
+              })) || [],
+          })
+        );
+        console.log("Transformed products:", transformedProducts.length);
+        console.log("Selected category:", selectedCategory);
+        setAllProducts(transformedProducts);
+        
+        // Extract unique categories from products and update category list
+        const uniqueCategories = Array.from(
+          new Set(transformedProducts.map((p) => p.category).filter(Boolean))
+        ).sort();
+        const updatedCategories = ["All Categories", ...uniqueCategories];
+        setProductCategories(updatedCategories);
+        
+        // Apply category filter to products
+        if (selectedCategory === "All Categories") {
+          setProducts(transformedProducts);
+          console.log("Showing all products:", transformedProducts.length);
+        } else {
+          const filtered = transformedProducts.filter(
+            (p) => p.category === selectedCategory
+          );
+          setProducts(filtered);
+          console.log(
+            `Filtered products for ${selectedCategory}:`,
+            filtered.length
+          );
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to fetch products:", response.status, errorData);
+        toast.error("Failed to fetch products");
+        // Fallback to empty array
+        setAllProducts([]);
+        setProducts([]);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      toast.error("Error fetching products");
+      // Fallback to empty array
+      setAllProducts([]);
+      setProducts([]);
+    }
   };
 
   const fetchQuotes = async () => {
-    // Mock quote data - from anyone (no authentication required)
-    const mockQuotes: QuoteRequest[] = [
-      {
-        id: "Q001",
-        customerName: "Sarah Johnson",
-        customerEmail: "sarah.j@email.com",
-        customerPhone: "+1 (555) 123-4567",
-        products: [
-          {
-            productName: "Sterling Silver Fork Set",
-            quantity: 2,
-            specifications: "Engraving: 'SJ' initials",
-          },
-          {
-            productName: "Ornate Serving Tray",
-            quantity: 1,
-          },
-        ],
-        message: "Looking for wedding gift set. Need by next month.",
-        status: "pending",
-        createdAt: "2024-10-14T10:30:00Z",
-      },
-      {
-        id: "Q002",
-        customerName: "Michael Chen",
-        customerEmail: "m.chen@company.com",
-        customerPhone: "+1 (555) 234-5678",
-        products: [
-          {
-            productName: "Premium Dinner Knife Set",
-            quantity: 10,
-            specifications: "Bulk order for restaurant",
-          },
-          {
-            productName: "Classic Spoon Collection",
-            quantity: 10,
-          },
-        ],
-        message: "Corporate order. Need pricing for bulk purchase.",
-        status: "sent",
-        createdAt: "2024-10-12T14:20:00Z",
-      },
-      {
-        id: "Q003",
-        customerName: "Emily Rodriguez",
-        customerEmail: "emily.rod@gmail.com",
-        customerPhone: "+1 (555) 345-6789",
-        products: [
-          {
-            productName: "Elegant Tea Set",
-            quantity: 1,
-            specifications: "92.5% purity only",
-          },
-        ],
-        message: "Gift for mother's birthday",
-        status: "pending",
-        createdAt: "2024-10-15T09:15:00Z",
-      },
-      {
-        id: "Q004",
-        customerName: "David Thompson",
-        customerEmail: "d.thompson@email.com",
-        customerPhone: "+1 (555) 456-7890",
-        products: [
-          {
-            productName: "Soup Spoon Collection",
-            quantity: 3,
-          },
-        ],
-        status: "rejected",
-        createdAt: "2024-10-10T16:45:00Z",
-      },
-    ];
-    setQuotes(mockQuotes);
+    try {
+      const response = await fetch("/api/quotes");
+      if (response.ok) {
+        const data = await response.json();
+        // Transform API quotes to match admin panel structure
+        const transformedQuotes: QuoteRequest[] = (data.quotes || []).map(
+          (q: any) => ({
+            id: q.id,
+            customerName: q.name,
+            customerEmail: q.email,
+            customerPhone: q.phone || "",
+            products: (q.items || []).map((item: any) => ({
+              productName: item.productName || "Unknown Product",
+              quantity: item.quantity || 1,
+              category: item.category || "N/A",
+            })),
+            message: "",
+            status: q.status?.toLowerCase() || "pending",
+            createdAt: new Date(q.createdAt).toISOString(),
+            businessName: q.businessName || undefined,
+            gstin: q.gstin || undefined,
+          })
+        );
+        setQuotes(transformedQuotes);
+      } else {
+        toast.error("Failed to fetch quotes");
+        setQuotes([]);
+      }
+    } catch (error) {
+      console.error("Error fetching quotes:", error);
+      toast.error("Error fetching quotes");
+      setQuotes([]);
+    }
   };
 
   const fetchOrders = async () => {
-    // Mock order data - from verified accounts only (prices in INR)
-    const mockOrders: Order[] = [
-      {
-        id: "ORD-2024-001",
-        userId: "user_123",
-        customerName: "John Doe",
-        customerEmail: "john.doe@example.com",
-        products: [
-          {
-            productName: "Sterling Silver Fork Set",
-            quantity: 1,
-            price: 24899.0,
-          },
-          {
-            productName: "Ornate Serving Tray",
-            quantity: 1,
-            price: 15749.0,
-          },
-        ],
-        totalAmount: 40648.0,
-        status: "delivered",
-        paymentStatus: "paid",
-        createdAt: "2024-10-01T10:00:00Z",
-        shippingAddress: "123 MG Road, Bangalore, Karnataka 560001, India",
-      },
-      {
-        id: "ORD-2024-002",
-        userId: "user_456",
-        customerName: "Jane Smith",
-        customerEmail: "jane.smith@example.com",
-        products: [
-          {
-            productName: "Premium Dinner Knife Set",
-            quantity: 2,
-            price: 33199.0,
-          },
-        ],
-        totalAmount: 66398.0,
-        status: "processing",
-        paymentStatus: "paid",
-        createdAt: "2024-10-13T14:30:00Z",
-        shippingAddress: "456 Park Street, Kolkata, West Bengal 700016, India",
-      },
-      {
-        id: "ORD-2024-003",
-        userId: "user_789",
-        customerName: "Robert Wilson",
-        customerEmail: "robert.w@example.com",
-        products: [
-          {
-            productName: "Elegant Tea Set",
-            quantity: 1,
-            price: 49799.0,
-          },
-          {
-            productName: "Classic Spoon Collection",
-            quantity: 2,
-            price: 20749.0,
-          },
-        ],
-        totalAmount: 91297.0,
-        status: "shipped",
-        paymentStatus: "paid",
-        createdAt: "2024-10-08T11:20:00Z",
-        shippingAddress: "789 Marine Drive, Mumbai, Maharashtra 400020, India",
-      },
-      {
-        id: "ORD-2024-004",
-        userId: "user_321",
-        customerName: "Lisa Anderson",
-        customerEmail: "lisa.a@example.com",
-        products: [
-          {
-            productName: "Soup Spoon Collection",
-            quantity: 3,
-            price: 15749.0,
-          },
-        ],
-        totalAmount: 47247.0,
-        status: "pending",
-        paymentStatus: "pending",
-        createdAt: "2024-10-15T09:45:00Z",
-        shippingAddress: "321 Connaught Place, New Delhi, Delhi 110001, India",
-      },
-      {
-        id: "ORD-2024-005",
-        userId: "user_654",
-        customerName: "Mark Davis",
-        customerEmail: "mark.davis@example.com",
-        products: [
-          {
-            productName: "Sterling Silver Fork Set",
-            quantity: 1,
-            price: 24899.0,
-          },
-        ],
-        totalAmount: 24899.0,
-        status: "cancelled",
-        paymentStatus: "refunded",
-        createdAt: "2024-10-05T15:10:00Z",
-        shippingAddress: "654 Brigade Road, Bangalore, Karnataka 560025, India",
-      },
-    ];
-    setOrders(mockOrders);
+    try {
+      const response = await fetch("/api/orders");
+      if (response.ok) {
+        const data = await response.json();
+        // Transform API orders to match admin panel structure
+        const transformedOrders: Order[] = (data.orders || []).map((o: any) => {
+          const items = o.items || [];
+          const totalAmount = items.reduce((sum: number, item: any) => {
+            // Calculate total - you may need to adjust this based on your pricing logic
+            return sum + (item.quantity || 1) * 1000; // Placeholder calculation
+          }, 0);
+
+          return {
+            id: o.id,
+            orderNumber: o.orderNumber || o.id.substring(0, 6).toUpperCase(), // Use orderNumber or fallback to first 6 chars of ID
+            userId: o.userId || "",
+            customerName: o.name,
+            customerEmail: o.email,
+            products: items.map((item: any) => ({
+              productName: item.productName || "Unknown Product",
+              quantity: item.quantity || 1,
+              price: 1000, // Placeholder - adjust based on your pricing logic
+              width: item.variantDetails?.width || "",
+              height: item.variantDetails?.height || "",
+              diameter: item.variantDetails?.diameter || "",
+              purity: item.variantDetails?.purity || undefined,
+            })),
+            totalAmount,
+            status: o.status?.toLowerCase() || "pending",
+            paymentStatus: "pending" as const, // Default payment status
+            createdAt: new Date(o.createdAt).toISOString(),
+            shippingAddress: "", // Not stored in current schema
+            businessName: o.businessName || undefined,
+            gstin: o.gstin || undefined,
+          };
+        });
+        setOrders(transformedOrders);
+      } else {
+        toast.error("Failed to fetch orders");
+        setOrders([]);
+      }
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      toast.error("Error fetching orders");
+      setOrders([]);
+    }
   };
 
   const handleToggleUserStatus = async (
@@ -508,12 +423,12 @@ export default function AdminDashboard() {
 
       if (response.ok) {
         const data = await response.json();
-        toast.success(
-          `Password reset! Temporary password: ${data.temporaryPassword}`,
-          {
-            duration: 10000,
-          }
-        );
+        // Set the reset password data and open the dialog
+        setResetPasswordData({
+          user: data.user,
+          temporaryPassword: data.temporaryPassword,
+        });
+        setShowCreateUser(true);
         fetchUsers();
       } else {
         const data = await response.json();
@@ -525,12 +440,14 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) {
-      return;
-    }
+    setDeleteUserDialog({ open: true, userId });
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!deleteUserDialog.userId) return;
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${deleteUserDialog.userId}`, {
         method: "DELETE",
       });
 
@@ -543,6 +460,8 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       toast.error("Error deleting user");
+    } finally {
+      setDeleteUserDialog({ open: false, userId: null });
     }
   };
 
@@ -552,18 +471,26 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) {
-      return;
-    }
+    setDeleteProductDialog({ open: true, productId });
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!deleteProductDialog.productId) return;
 
     try {
       // Mock delete - replace with actual API call
-      const updatedAllProducts = allProducts.filter((p) => p.id !== productId);
+      const updatedAllProducts = allProducts.filter(
+        (p) => p.id !== deleteProductDialog.productId
+      );
       setAllProducts(updatedAllProducts);
-      setProducts(products.filter((p) => p.id !== productId));
+      setProducts(
+        products.filter((p) => p.id !== deleteProductDialog.productId)
+      );
       toast.success("Product deleted successfully");
     } catch (error) {
       toast.error("Error deleting product");
+    } finally {
+      setDeleteProductDialog({ open: false, productId: null });
     }
   };
 
@@ -588,33 +515,149 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleProductAdded = (newProduct: Product) => {
-    setAllProducts([...allProducts, newProduct]);
+  const handleProductAdded = async (newProduct: Product) => {
+    try {
+      // Save to API
+      const response = await fetch("/api/products", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: newProduct.name,
+          description: newProduct.description,
+          category: newProduct.category,
+          price: newProduct.price,
+          image: newProduct.image,
+          images: newProduct.images || [],
+          weightRange: newProduct.weightRange || "",
+          variants:
+            newProduct.variants?.map((v) => ({
+              weight: v.weight,
+              width: v.width || "",
+              height: v.height || "",
+              diameter: v.diameter || "",
+              purities: v.purities || [],
+            })) || [],
+        }),
+      });
 
-    // Update displayed products based on current filter
-    if (
-      selectedCategory === "All Categories" ||
-      selectedCategory === newProduct.category
-    ) {
-      setProducts([...products, newProduct]);
+      if (response.ok) {
+        const data = await response.json();
+        const savedProduct: Product = {
+          id: data.product.id,
+          name: data.product.name,
+          description: data.product.description || "",
+          price: data.product.price || 0,
+          image: data.product.image || "/assets/placeholder.jpg",
+          category: data.product.category,
+          weightRange: data.product.weightRange || "",
+          images: data.product.images || [],
+          variants:
+            data.product.variants?.map((v: any) => ({
+              id: v.id,
+              weight: v.weight,
+              width: v.width || "",
+              height: v.height || "",
+              diameter: v.diameter || "",
+              purities: v.purities || [],
+            })) || [],
+        };
+
+        setAllProducts([...allProducts, savedProduct]);
+
+        // Update displayed products based on current filter
+        if (
+          selectedCategory === "All Categories" ||
+          selectedCategory === savedProduct.category
+        ) {
+          setProducts([...products, savedProduct]);
+        }
+
+        toast.success("Product added successfully!");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to add product");
+      }
+    } catch (error) {
+      console.error("Error adding product:", error);
+      toast.error("Error adding product");
     }
   };
 
-  const handleProductUpdated = (updatedProduct: Product) => {
-    // Update in all products
-    const updatedAllProducts = allProducts.map((p) =>
-      p.id === updatedProduct.id ? updatedProduct : p
-    );
-    setAllProducts(updatedAllProducts);
+  const handleProductUpdated = async (updatedProduct: Product) => {
+    try {
+      // Update via API
+      const response = await fetch(`/api/products/${updatedProduct.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: updatedProduct.name,
+          description: updatedProduct.description,
+          category: updatedProduct.category,
+          price: updatedProduct.price,
+          image: updatedProduct.image,
+          images: updatedProduct.images || [],
+          weightRange: updatedProduct.weightRange || "",
+          variants:
+            updatedProduct.variants?.map((v) => ({
+              weight: v.weight,
+              width: v.width || "",
+              height: v.height || "",
+              diameter: v.diameter || "",
+              purities: v.purities || [],
+            })) || [],
+        }),
+      });
 
-    // Update in displayed products
-    const updatedProducts = products.map((p) =>
-      p.id === updatedProduct.id ? updatedProduct : p
-    );
-    setProducts(updatedProducts);
+      if (response.ok) {
+        const data = await response.json();
+        const savedProduct: Product = {
+          id: data.product.id,
+          name: data.product.name,
+          description: data.product.description || "",
+          price: data.product.price || 0,
+          image: data.product.image || "/assets/placeholder.jpg",
+          category: data.product.category,
+          weightRange: data.product.weightRange || "",
+          images: data.product.images || [],
+          variants:
+            data.product.variants?.map((v: any) => ({
+              id: v.id,
+              weight: v.weight,
+              width: v.width || "",
+              height: v.height || "",
+              diameter: v.diameter || "",
+              purities: v.purities || [],
+            })) || [],
+        };
 
-    // Reset editing state
-    setEditingProduct(null);
+        // Update in all products
+        const updatedAllProducts = allProducts.map((p) =>
+          p.id === savedProduct.id ? savedProduct : p
+        );
+        setAllProducts(updatedAllProducts);
+
+        // Update in displayed products
+        const updatedProducts = products.map((p) =>
+          p.id === savedProduct.id ? savedProduct : p
+        );
+        setProducts(updatedProducts);
+
+        // Reset editing state
+        setEditingProduct(null);
+
+        toast.success("Product updated successfully!");
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Failed to update product");
+      }
+    } catch (error) {
+      console.error("Error updating product:", error);
+      toast.error("Error updating product");
+    }
   };
 
   const handleProductDialogClose = (open: boolean) => {
@@ -653,14 +696,92 @@ export default function AdminDashboard() {
     setShowOrderDetails(true);
   };
 
+  const handleDeleteQuote = async (quoteId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the quote click
+    setDeleteQuoteDialog({ open: true, quoteId });
+  };
+
+  const confirmDeleteQuote = async () => {
+    if (!deleteQuoteDialog.quoteId) return;
+
+    try {
+      const response = await fetch(`/api/quotes/${deleteQuoteDialog.quoteId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setQuotes(quotes.filter((q) => q.id !== deleteQuoteDialog.quoteId));
+        toast.success("Quote deleted successfully");
+      } else {
+        toast.error("Failed to delete quote");
+      }
+    } catch (error) {
+      console.error("Error deleting quote:", error);
+      toast.error("Error deleting quote");
+    } finally {
+      setDeleteQuoteDialog({ open: false, quoteId: null });
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the order click
+    setDeleteOrderDialog({ open: true, orderId });
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!deleteOrderDialog.orderId) return;
+
+    try {
+      const response = await fetch(`/api/orders/${deleteOrderDialog.orderId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setOrders(orders.filter((o) => o.id !== deleteOrderDialog.orderId));
+        toast.success("Order deleted successfully");
+      } else {
+        toast.error("Failed to delete order");
+      }
+    } catch (error) {
+      console.error("Error deleting order:", error);
+      toast.error("Error deleting order");
+    } finally {
+      setDeleteOrderDialog({ open: false, orderId: null });
+    }
+  };
+
   const handleOrderStatusUpdate = (
     orderId: string,
     newStatus: Order["status"]
   ) => {
-    setOrders(
-      orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    const updatedOrders = orders.map((o) =>
+      o.id === orderId ? { ...o, status: newStatus } : o
     );
+    setOrders(updatedOrders);
+
+    // Update selectedOrder if it's the one being updated
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder({ ...selectedOrder, status: newStatus });
+    }
+
     toast.success(`Order status updated to ${newStatus}!`);
+  };
+
+  const handlePaymentStatusUpdate = (
+    orderId: string,
+    newPaymentStatus: Order["paymentStatus"]
+  ) => {
+    const updatedOrders = orders.map((o) =>
+      o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
+    );
+    setOrders(updatedOrders);
+
+    // Update selectedOrder if it's the one being updated
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder({ ...selectedOrder, paymentStatus: newPaymentStatus });
+    }
+
+    toast.success(`Payment status updated to ${newPaymentStatus}!`);
   };
 
   if (status === "loading" || loading) {
@@ -814,7 +935,11 @@ export default function AdminDashboard() {
                 {users.map((user) => (
                   <div
                     key={user.id}
-                    className="flex items-center justify-between p-4 border rounded-lg"
+                    className="flex items-center justify-between p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      setSelectedUser(user);
+                      setShowUserDetails(true);
+                    }}
                   >
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
@@ -1041,17 +1166,26 @@ export default function AdminDashboard() {
                           </p>
                         </div>
                       </div>
-                      <Badge
-                        variant={
-                          quote.status === "pending"
-                            ? "default"
-                            : quote.status === "sent"
-                              ? "secondary"
-                              : "destructive"
-                        }
-                      >
-                        {quote.status}
-                      </Badge>
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          variant={
+                            quote.status === "pending"
+                              ? "default"
+                              : quote.status === "sent"
+                                ? "secondary"
+                                : "destructive"
+                          }
+                        >
+                          {quote.status}
+                        </Badge>
+                        <button
+                          onClick={(e) => handleDeleteQuote(quote.id, e)}
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete quote"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1071,60 +1205,70 @@ export default function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {orders.map((order) => (
-                    <div
-                      key={order.id}
-                      onClick={() => handleOrderClick(order)}
-                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center font-semibold">
-                          {order.customerName.charAt(0).toUpperCase()}
+                {orders.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 text-lg">There are no orders</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {orders.map((order) => (
+                      <div
+                        key={order.id}
+                        onClick={() => handleOrderClick(order)}
+                        className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center font-semibold">
+                            {order.customerName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg">
+                              {order.customerName}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {order.orderNumber ||
+                                order.id.substring(0, 6).toUpperCase()}{" "}
+                              • {new Date(order.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {order.customerName}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {order.id} • ₹
-                            {order.totalAmount.toLocaleString("en-IN", {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}{" "}
-                            • {new Date(order.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            order.status === "delivered"
-                              ? "secondary"
-                              : order.status === "shipped"
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            variant={
+                              order.status === "delivered"
+                                ? "secondary"
+                                : order.status === "completed"
+                                  ? "default"
+                                  : order.status === "processing"
+                                    ? "default"
+                                    : "outline"
+                            }
+                          >
+                            {order.status}
+                          </Badge>
+                          <Badge
+                            variant={
+                              order.paymentStatus === "paid"
                                 ? "default"
-                                : order.status === "cancelled"
+                                : order.paymentStatus === "refunded"
                                   ? "destructive"
                                   : "outline"
-                          }
-                        >
-                          {order.status}
-                        </Badge>
-                        <Badge
-                          variant={
-                            order.paymentStatus === "paid"
-                              ? "default"
-                              : order.paymentStatus === "refunded"
-                                ? "destructive"
-                                : "outline"
-                          }
-                        >
-                          {order.paymentStatus}
-                        </Badge>
+                            }
+                          >
+                            {order.paymentStatus}
+                          </Badge>
+                          <button
+                            onClick={(e) => handleDeleteOrder(order.id, e)}
+                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete order"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1133,8 +1277,18 @@ export default function AdminDashboard() {
 
       <CreateUserDialog
         open={showCreateUser}
-        onOpenChange={setShowCreateUser}
-        onUserCreated={handleUserCreated}
+        onOpenChange={(open) => {
+          setShowCreateUser(open);
+          if (!open) {
+            setResetPasswordData(null);
+          }
+        }}
+        onUserCreated={() => {
+          fetchUsers();
+          setResetPasswordData(null);
+        }}
+        mode={resetPasswordData ? "reset" : "create"}
+        resetUserData={resetPasswordData}
       />
 
       <AddProductDialog
@@ -1165,7 +1319,116 @@ export default function AdminDashboard() {
         onOpenChange={setShowOrderDetails}
         order={selectedOrder}
         onStatusUpdate={handleOrderStatusUpdate}
+        onPaymentStatusUpdate={handlePaymentStatusUpdate}
       />
+
+      <UserDetailsDialog
+        open={showUserDetails}
+        onOpenChange={setShowUserDetails}
+        user={selectedUser}
+      />
+
+      {/* Delete User Alert Dialog */}
+      <AlertDialog
+        open={deleteUserDialog.open}
+        onOpenChange={(open) => setDeleteUserDialog({ open, userId: null })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this user? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Product Alert Dialog */}
+      <AlertDialog
+        open={deleteProductDialog.open}
+        onOpenChange={(open) =>
+          setDeleteProductDialog({ open, productId: null })
+        }
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this product? This action cannot
+              be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProduct}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Quote Alert Dialog */}
+      <AlertDialog
+        open={deleteQuoteDialog.open}
+        onOpenChange={(open) => setDeleteQuoteDialog({ open, quoteId: null })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Quote</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this quote? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteQuote}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Order Alert Dialog */}
+      <AlertDialog
+        open={deleteOrderDialog.open}
+        onOpenChange={(open) => setDeleteOrderDialog({ open, orderId: null })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Order</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this order? This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteOrder}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

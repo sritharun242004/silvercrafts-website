@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Inter, Poppins, Raleway } from "next/font/google";
 import "./globals.css";
-import { SessionProvider } from "next-auth/react";
+import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
+import AppWrapper from "./AppWrapper";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -13,13 +14,20 @@ const inter = Inter({
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+});
+
+const raleway = Raleway({
+  variable: "--font-raleway",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "SilverCrafts - Luxury Silverware & Jewelry",
+  title: "Silver Crafts",
   description:
-    "Discover exquisite silverware and luxury jewelry crafted with European precision. Sterling silver cutlery, serving sets, and handcrafted pieces.",
+    "Premium silver articles manufacturer trusted by retailers across India. 20+ years of crafting excellence.",
 };
 
 export default function RootLayout({
@@ -28,12 +36,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.variable} ${poppins.variable} antialiased`}>
-        <SessionProvider>
-          {children}
+    <html
+      lang="en"
+      className={`${raleway.variable} ${poppins.variable} ${inter.variable}`}
+    >
+      <body className={`${poppins.className} antialiased`}>
+        <Providers>
+          <AppWrapper>{children}</AppWrapper>
           <Toaster position="top-right" richColors />
-        </SessionProvider>
+        </Providers>
       </body>
     </html>
   );

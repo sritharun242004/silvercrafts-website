@@ -46,15 +46,26 @@ export async function PUT(
       const temporaryPassword = generateTemporaryPassword();
       const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
 
-      await prisma.user.update({
+      const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: {
           password: hashedPassword,
           isTemporary: true,
         },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          isActive: true,
+          isTemporary: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
 
       return NextResponse.json({
+        user: updatedUser,
         temporaryPassword,
         message: "Password reset successfully",
       });

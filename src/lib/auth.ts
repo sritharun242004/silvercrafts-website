@@ -1,10 +1,8 @@
 import NextAuth, { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-
-const prisma = new PrismaClient();
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -61,6 +59,8 @@ const config: NextAuthConfig = {
             name: user.name,
             role: user.role,
             isTemporary: user.isTemporary,
+            companyName: user.companyName,
+            gstNo: user.gstNo,
           };
           console.log("Auth - returning user:", authUser);
           return authUser;
@@ -86,9 +86,13 @@ const config: NextAuthConfig = {
       if (user) {
         token.role = user.role;
         token.isTemporary = user.isTemporary;
+        token.companyName = user.companyName;
+        token.gstNo = user.gstNo;
         console.log("JWT callback - updated token:", {
           role: token.role,
           isTemporary: token.isTemporary,
+          companyName: token.companyName,
+          gstNo: token.gstNo,
         });
       }
       return token;
@@ -103,11 +107,15 @@ const config: NextAuthConfig = {
         session.user.id = token.sub;
         session.user.role = token.role as string;
         session.user.isTemporary = token.isTemporary as boolean;
+        session.user.companyName = token.companyName as string | null;
+        session.user.gstNo = token.gstNo as string | null;
         console.log("Session callback - updated session:", {
           id: session.user.id,
           email: session.user.email,
           role: session.user.role,
           isTemporary: session.user.isTemporary,
+          companyName: session.user.companyName,
+          gstNo: session.user.gstNo,
         });
       }
       return session;
@@ -117,7 +125,7 @@ const config: NextAuthConfig = {
     signIn: "/auth",
   },
   debug: process.env.NODE_ENV === "development",
-  secret: process.env.AUTH_SECRET,
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
 };
 
 export const { handlers, signIn, signOut, auth } = NextAuth(config);

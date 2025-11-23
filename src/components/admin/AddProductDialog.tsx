@@ -47,6 +47,7 @@ const AddProductDialog = ({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [weightRange, setWeightRange] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [variants, setVariants] = useState<ProductVariant[]>([
     {
@@ -67,6 +68,7 @@ const AddProductDialog = ({
       setName(editProduct.name || "");
       setDescription(editProduct.description || "");
       setCategory(editProduct.category || "");
+      setWeightRange(editProduct.weightRange || "");
       setImages(editProduct.images || [editProduct.image]);
       setVariants(
         editProduct.variants || [
@@ -85,6 +87,7 @@ const AddProductDialog = ({
       setName("");
       setDescription("");
       setCategory("");
+      setWeightRange("");
       setImages([]);
       setVariants([
         {
@@ -173,7 +176,7 @@ const AddProductDialog = ({
   const updateVariant = (
     id: string,
     field: keyof ProductVariant,
-    value: string
+    value: string | string[]
   ) => {
     setVariants(
       variants.map((v) => (v.id === id ? { ...v, [field]: value } : v))
@@ -223,6 +226,7 @@ const AddProductDialog = ({
           name,
           description,
           category,
+          weightRange,
           images,
           variants,
           image: images[0] || editProduct.image,
@@ -238,6 +242,7 @@ const AddProductDialog = ({
           name,
           description,
           category,
+          weightRange,
           images,
           variants,
           price: 0,
@@ -253,6 +258,7 @@ const AddProductDialog = ({
       setName("");
       setDescription("");
       setCategory("");
+      setWeightRange("");
       setImages([]);
       setVariants([
         {
@@ -291,6 +297,60 @@ const AddProductDialog = ({
           {/* Image Upload Section */}
           <div className="space-y-2">
             <Label>Product Images (up to 10)</Label>
+            
+            {/* Image URL Input */}
+            <div className="mb-4">
+              <Label htmlFor="image-url" className="text-sm text-gray-600 mb-2 block">
+                Add Image URL (from /assets/ folder)
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="image-url"
+                  type="text"
+                  placeholder="/assets/fork-elegance.jpg"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const url = (e.target as HTMLInputElement).value.trim();
+                      if (url && !images.includes(url)) {
+                        if (images.length < 10) {
+                          setImages([...images, url]);
+                          (e.target as HTMLInputElement).value = "";
+                        } else {
+                          toast.error("You can only add up to 10 images");
+                        }
+                      }
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const input = document.getElementById("image-url") as HTMLInputElement;
+                    const url = input.value.trim();
+                    if (url) {
+                      if (images.length < 10) {
+                        if (!images.includes(url)) {
+                          setImages([...images, url]);
+                          input.value = "";
+                        } else {
+                          toast.error("Image already added");
+                        }
+                      } else {
+                        toast.error("You can only add up to 10 images");
+                      }
+                    }
+                  }}
+                >
+                  Add URL
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Enter image paths like: /assets/fork-elegance.jpg
+              </p>
+            </div>
+
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -399,6 +459,20 @@ const AddProductDialog = ({
                   </option>
                 ))}
             </select>
+          </div>
+
+          {/* Weight Range */}
+          <div className="space-y-2">
+            <Label htmlFor="weightRange">Weight Range (optional)</Label>
+            <Input
+              id="weightRange"
+              placeholder="e.g., 50-100g per piece or 200-300g total"
+              value={weightRange}
+              onChange={(e) => setWeightRange(e.target.value)}
+            />
+            <p className="text-xs text-gray-500">
+              Provide a weight range for the product (e.g., "50-100g per piece" or "200-300g total")
+            </p>
           </div>
 
           {/* Variants Section */}

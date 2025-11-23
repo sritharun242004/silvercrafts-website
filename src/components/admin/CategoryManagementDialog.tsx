@@ -13,6 +13,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit2, Check, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface CategoryManagementDialogProps {
   open: boolean;
@@ -31,6 +41,7 @@ const CategoryManagementDialog = ({
   const [newCategory, setNewCategory] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
+  const [deleteCategoryDialog, setDeleteCategoryDialog] = useState<{ open: boolean; index: number | null }>({ open: false, index: null });
 
   useEffect(() => {
     // Filter out "All Categories" and initialize local state
@@ -88,13 +99,16 @@ const CategoryManagementDialog = ({
   };
 
   const handleDeleteCategory = (index: number) => {
-    if (!confirm("Are you sure you want to delete this category?")) {
-      return;
-    }
+    setDeleteCategoryDialog({ open: true, index });
+  };
 
-    const updated = localCategories.filter((_, i) => i !== index);
+  const confirmDeleteCategory = () => {
+    if (deleteCategoryDialog.index === null) return;
+
+    const updated = localCategories.filter((_, i) => i !== deleteCategoryDialog.index);
     setLocalCategories(updated);
     toast.success("Category deleted");
+    setDeleteCategoryDialog({ open: false, index: null });
   };
 
   const handleSaveChanges = () => {
@@ -106,6 +120,7 @@ const CategoryManagementDialog = ({
   };
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -222,6 +237,25 @@ const CategoryManagementDialog = ({
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Delete Category Alert Dialog */}
+    <AlertDialog open={deleteCategoryDialog.open} onOpenChange={(open) => setDeleteCategoryDialog({ open, index: null })}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Category</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this category? This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmDeleteCategory} className="bg-red-600 hover:bg-red-700">
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  </>
   );
 };
 
