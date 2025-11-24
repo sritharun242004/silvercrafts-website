@@ -16,7 +16,7 @@ async function main() {
     });
 
     if (!existingAdmin) {
-      const hashedPassword = await bcrypt.hash("admin123!", 12);
+      const hashedPassword = await bcrypt.hash("admin123", 12);
       await prisma.user.create({
         data: {
           name: "Admin User",
@@ -29,7 +29,7 @@ async function main() {
       });
       console.log("✅ Admin user created successfully!");
       console.log("📧 Email: admin@silvercrafts.com");
-      console.log("🔐 Password: admin123!");
+      console.log("🔐 Password: admin123");
     } else {
       console.log("ℹ️  Admin user already exists");
     }
@@ -38,7 +38,9 @@ async function main() {
     console.log("🗑️  Deleting existing products...");
     const deletedVariants = await prisma.productVariant.deleteMany({});
     const deletedProducts = await prisma.product.deleteMany({});
-    console.log(`✅ Deleted ${deletedProducts.count} products and ${deletedVariants.count} variants`);
+    console.log(
+      `✅ Deleted ${deletedProducts.count} products and ${deletedVariants.count} variants`
+    );
 
     // Seed all 76 products from products.ts
     console.log("📦 Seeding 76 products...");
@@ -50,11 +52,7 @@ async function main() {
         const min = parseInt(match[1]);
         const max = parseInt(match[2]);
         const step = Math.floor((max - min) / 3);
-        return [
-          min,
-          min + step,
-          max
-        ];
+        return [min, min + step, max];
       }
       return [100, 200, 300]; // Default weights
     };
@@ -62,30 +60,33 @@ async function main() {
     // Helper function to capitalize category name
     const capitalizeCategory = (category: string): string => {
       const categoryMap: { [key: string]: string } = {
-        'vessels': 'Vessels',
-        'lamps': 'Lamps',
-        'coins': 'Coins & Bars',
-        'bowl': 'Bowl',
-        'boxes': 'Boxes',
-        'chombu': 'Chombu',
-        'cups': 'Cups',
-        'glass': 'Glass',
-        'kamakshi': 'Kamakshi',
-        'kodam': 'Kodam',
-        'others': 'Others',
-        'panchapathram': 'Panchapathram',
-        'plates': 'Plates',
-        'simil': 'Simil',
-        'trays': 'Trays',
-        'vel': 'Vel'
+        vessels: "Vessels",
+        lamps: "Lamps",
+        coins: "Coins & Bars",
+        bowl: "Bowl",
+        boxes: "Boxes",
+        chombu: "Chombu",
+        cups: "Cups",
+        glass: "Glass",
+        kamakshi: "Kamakshi",
+        kodam: "Kodam",
+        others: "Others",
+        panchapathram: "Panchapathram",
+        plates: "Plates",
+        simil: "Simil",
+        trays: "Trays",
+        vel: "Vel",
       };
-      return categoryMap[category] || category.charAt(0).toUpperCase() + category.slice(1);
+      return (
+        categoryMap[category] ||
+        category.charAt(0).toUpperCase() + category.slice(1)
+      );
     };
 
     for (const product of frontendProducts) {
       const weights = parseWeightRange(product.weightRange);
       const categoryName = capitalizeCategory(product.category);
-      
+
       await prisma.product.create({
         data: {
           name: product.name,
@@ -122,10 +123,13 @@ async function main() {
       });
     }
 
-    console.log(`✅ Successfully seeded ${frontendProducts.length} products with 3 variants each!`);
+    console.log(
+      `✅ Successfully seeded ${frontendProducts.length} products with 3 variants each!`
+    );
     console.log("📸 Product images are referenced from /Products/ folder");
-    console.log("💡 Products are ready to be displayed in the admin panel and frontend");
-
+    console.log(
+      "💡 Products are ready to be displayed in the admin panel and frontend"
+    );
   } catch (error) {
     console.error("❌ Error seeding database:", error);
     throw error;

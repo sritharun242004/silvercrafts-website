@@ -10,18 +10,26 @@
 
 import dotenv from "dotenv";
 import { createClient } from "@sanity/client";
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync } from "fs";
+import { join } from "path";
 
 // Load environment variables from .env.local
 dotenv.config({ path: ".env.local" });
 
 // Load CSV-processed JSON data
-const dataPath = join(process.cwd(), 'src', 'data', 'csv-processed');
-const categoriesData = JSON.parse(readFileSync(join(dataPath, 'categories.json'), 'utf-8'));
-const materialsData = JSON.parse(readFileSync(join(dataPath, 'materials.json'), 'utf-8'));
-const collectionsData = JSON.parse(readFileSync(join(dataPath, 'collections.json'), 'utf-8'));
-const productsData = JSON.parse(readFileSync(join(dataPath, 'products.json'), 'utf-8'));
+const dataPath = join(process.cwd(), "src", "data", "csv-processed");
+const categoriesData = JSON.parse(
+  readFileSync(join(dataPath, "categories.json"), "utf-8")
+);
+const materialsData = JSON.parse(
+  readFileSync(join(dataPath, "materials.json"), "utf-8")
+);
+const collectionsData = JSON.parse(
+  readFileSync(join(dataPath, "collections.json"), "utf-8")
+);
+const productsData = JSON.parse(
+  readFileSync(join(dataPath, "products.json"), "utf-8")
+);
 
 // Debug: Check what environment variables are loaded
 console.log("🔍 Checking environment variables:");
@@ -52,22 +60,22 @@ const client = createClient({
 
 async function importDocuments(documents: any[], type: string, emoji: string) {
   console.log(`${emoji} Importing ${type}...`);
-  
+
   try {
     // Create transaction for batch import
     const transaction = client.transaction();
-    
+
     documents.forEach((doc) => {
       transaction.createOrReplace(doc);
     });
-    
+
     const result = await transaction.commit();
-    
+
     // Log each created item
     documents.forEach((doc) => {
       console.log(`   ✅ Created ${type.slice(0, -1)}: ${doc.name}`);
     });
-    
+
     return { success: true, count: documents.length, error: null };
   } catch (error) {
     console.error(`❌ Error importing ${type}:`, error);
@@ -93,15 +101,23 @@ async function importAllData() {
   };
 
   // Import in order of dependencies (no references first)
-  results.categories = await importDocuments(categoriesData, "categories", "🗂️ ");
+  results.categories = await importDocuments(
+    categoriesData,
+    "categories",
+    "🗂️ "
+  );
   results.materials = await importDocuments(materialsData, "materials", "🧱");
-  results.collections = await importDocuments(collectionsData, "collections", "📦");
+  results.collections = await importDocuments(
+    collectionsData,
+    "collections",
+    "📦"
+  );
   results.products = await importDocuments(productsData, "products", "🍴");
 
   // Print summary
   console.log("\n📈 Import Summary:");
   console.log("==================");
-  
+
   Object.entries(results).forEach(([key, result]) => {
     if (result.success) {
       console.log(`✅ ${key}: ${result.count} items imported successfully`);
@@ -110,8 +126,13 @@ async function importAllData() {
     }
   });
 
-  const totalSuccess = Object.values(results).reduce((sum, result) => sum + result.count, 0);
-  const totalErrors = Object.values(results).filter(result => !result.success).length;
+  const totalSuccess = Object.values(results).reduce(
+    (sum, result) => sum + result.count,
+    0
+  );
+  const totalErrors = Object.values(results).filter(
+    (result) => !result.success
+  ).length;
 
   console.log(`\n🎯 Total Success: ${totalSuccess} items`);
   console.log(`⚠️  Total Errors: ${totalErrors}`);
@@ -120,7 +141,9 @@ async function importAllData() {
     console.log("\n🎉 All data imported successfully!");
     console.log("📍 You can now view your products at:");
     console.log(`   Studio: http://localhost:3334`);
-    console.log(`   Dataset: ${process.env.NEXT_PUBLIC_SANITY_DATASET || "production"}`);
+    console.log(
+      `   Dataset: ${process.env.NEXT_PUBLIC_SANITY_DATASET || "production"}`
+    );
   }
 }
 
