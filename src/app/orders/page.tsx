@@ -32,6 +32,7 @@ interface Product {
   name: string;
   category: string;
   image: string;
+  images?: string[];
   weightRange?: string;
   variants?: ProductVariant[];
 }
@@ -59,6 +60,7 @@ export default function OrdersPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedPurity, setSelectedPurity] = useState<string>("80");
   const categoryCarouselRef = useRef<HTMLDivElement>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -66,6 +68,7 @@ export default function OrdersPage() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showVariantDialog, setShowVariantDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [variantQuantities, setVariantQuantities] = useState<{
     [key: string]: number;
   }>({});
@@ -103,9 +106,32 @@ export default function OrdersPage() {
     }
   }, [session]);
 
+  // Filter products by category and purity
   useEffect(() => {
-    setFilteredProducts(allProducts);
-  }, [allProducts]);
+    let filtered = allProducts;
+
+    // Filter by category
+    if (selectedCategory !== "all") {
+      const categoryName = normalizeCategory(selectedCategory);
+      filtered = filtered.filter((p) => p.category === categoryName);
+    }
+
+    // Filter by purity - only show products that have variants with the selected purity
+    filtered = filtered.filter((product) => {
+      if (product.variants && Array.isArray(product.variants)) {
+        return product.variants.some((variant) => {
+          if (variant.purities && Array.isArray(variant.purities)) {
+            return variant.purities.includes(selectedPurity);
+          }
+          return false;
+        });
+      }
+      // If no variants, don't show the product
+      return false;
+    });
+
+    setFilteredProducts(filtered);
+  }, [allProducts, selectedCategory, selectedPurity]);
 
   const fetchProducts = async () => {
     try {
@@ -118,6 +144,10 @@ export default function OrdersPage() {
           name: p.name,
           category: p.category,
           image: p.image || "/logos/Main logo.png",
+          images:
+            p.images && p.images.length > 0
+              ? p.images
+              : [p.image || "/logos/Main logo.png"],
           weightRange: p.weightRange || "",
           variants: (p.variants || []).map((v: any) => ({
             id: v.id,
@@ -131,7 +161,6 @@ export default function OrdersPage() {
           })),
         }));
         setAllProducts(products);
-        setFilteredProducts(products);
       } else {
         console.error("Failed to fetch products");
       }
@@ -190,36 +219,32 @@ export default function OrdersPage() {
     [allProducts]
   );
 
-  // Helper function to expand variants by purity
+  // Helper function to expand variants by purity, filtered by selected purity
   const expandVariantsByPurity = useCallback(
     (variants: ProductVariant[]): ExpandedVariant[] => {
       const expanded: ExpandedVariant[] = [];
       variants.forEach((variant) => {
         if (variant.purities && variant.purities.length > 0) {
-          variant.purities.forEach((purity) => {
+          // Only include variants that have the selected purity
+          if (variant.purities.includes(selectedPurity)) {
             expanded.push({
               baseVariant: variant,
-              purity,
-              key: `${variant.id}-${purity}`,
+              purity: selectedPurity,
+              key: `${variant.id}-${selectedPurity}`,
             });
-          });
-        } else {
-          // If no purities, still show the variant
-          expanded.push({
-            baseVariant: variant,
-            purity: "",
-            key: `${variant.id}-none`,
-          });
+          }
         }
+        // If no purities, don't show the variant (we require purity filtering)
       });
       return expanded;
     },
-    []
+    [selectedPurity]
   );
 
   const openVariantDialog = useCallback(
     (product: Product) => {
       setSelectedProduct(product);
+      setSelectedImageIndex(0); // Reset to first image
       setShowVariantDialog(true);
       // Initialize variant quantities from existing order items
       const initialQuantities: { [key: string]: number } = {};
@@ -245,6 +270,22 @@ export default function OrdersPage() {
         const newValue = Math.max(0, current + delta);
         return { ...prev, [variantId]: newValue };
       });
+    },
+    []
+  );
+
+  const handleQuantityChange = useCallback(
+    (variantId: string, value: string) => {
+      // Allow empty string for better UX while typing
+      if (value === "") {
+        setVariantQuantities((prev) => ({ ...prev, [variantId]: 0 }));
+        return;
+      }
+      // Only allow positive integers
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue) && numValue >= 0) {
+        setVariantQuantities((prev) => ({ ...prev, [variantId]: numValue }));
+      }
     },
     []
   );
@@ -277,6 +318,7 @@ export default function OrdersPage() {
     setShowVariantDialog(false);
     setVariantQuantities({});
     setSelectedProduct(null);
+    setSelectedImageIndex(0);
   }, [selectedProduct, variantQuantities, orderItems, expandVariantsByPurity]);
 
   const uniqueProductCount = orderItems.length;
@@ -595,6 +637,35 @@ export default function OrdersPage() {
                 {filteredProducts.length === 1 ? "product" : "products"}{" "}
                 available
               </p>
+            </div>
+
+            {/* Purity Label and Toggle */}
+            <div className="absolute right-4 top-0 flex flex-col items-center gap-1">
+              <span className="text-xs sm:text-sm text-[#6F6F6F] font-medium">
+                Purity
+              </span>
+              <div className="flex items-center gap-0 bg-white border border-[#E8E4DA] rounded-full px-1 min-h-[44px]">
+                <button
+                  onClick={() => setSelectedPurity("80")}
+                  className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
+                    selectedPurity === "80"
+                      ? "bg-[#a8bba3] text-white"
+                      : "text-[#6F6F6F] hover:bg-gray-100"
+                  }`}
+                >
+                  80%
+                </button>
+                <button
+                  onClick={() => setSelectedPurity("92.5")}
+                  className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
+                    selectedPurity === "92.5"
+                      ? "bg-[#a8bba3] text-white"
+                      : "text-[#6F6F6F] hover:bg-gray-100"
+                  }`}
+                >
+                  92.5%
+                </button>
+              </div>
             </div>
           </div>
 
@@ -978,20 +1049,95 @@ export default function OrdersPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 md:p-6">
-              {/* Product Image */}
+              {/* Product Image Carousel */}
               {selectedProduct.image && (
-                <div className="w-[300px] h-[300px] mx-auto mb-6 rounded-lg overflow-hidden bg-gray-100 border border-[#E8E4DA]">
-                  <img
-                    src={selectedProduct.image}
-                    alt={selectedProduct.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "/logos/Main logo.png";
-                      target.className =
-                        "w-full h-full object-contain opacity-30";
-                    }}
-                  />
+                <div className="mb-6">
+                  {/* Main Image with Navigation */}
+                  <div className="relative w-full max-w-[400px] mx-auto mb-4">
+                    <div className="relative w-full h-[300px] sm:h-[400px] rounded-lg overflow-hidden bg-gray-100 border border-[#E8E4DA]">
+                      <img
+                        src={
+                          selectedProduct.images &&
+                          selectedProduct.images.length > 0
+                            ? selectedProduct.images[selectedImageIndex]
+                            : selectedProduct.image
+                        }
+                        alt={selectedProduct.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/logos/Main logo.png";
+                          target.className =
+                            "w-full h-full object-contain opacity-30";
+                        }}
+                      />
+
+                      {/* Left/Right Arrow Buttons - Only show if more than one image */}
+                      {selectedProduct.images &&
+                        selectedProduct.images.length > 1 && (
+                          <>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImageIndex((prev) =>
+                                  prev === 0
+                                    ? selectedProduct.images!.length - 1
+                                    : prev - 1
+                                );
+                              }}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white border border-[#E8E4DA] rounded-full p-2 shadow-md transition-all hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center z-10"
+                              aria-label="Previous image"
+                            >
+                              <ChevronLeft className="w-5 h-5 text-[#1C1C1C]" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImageIndex((prev) =>
+                                  prev === selectedProduct.images!.length - 1
+                                    ? 0
+                                    : prev + 1
+                                );
+                              }}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white border border-[#E8E4DA] rounded-full p-2 shadow-md transition-all hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center z-10"
+                              aria-label="Next image"
+                            >
+                              <ChevronRight className="w-5 h-5 text-[#1C1C1C]" />
+                            </button>
+                          </>
+                        )}
+                    </div>
+                  </div>
+
+                  {/* Thumbnail Images - Only show if more than one image */}
+                  {selectedProduct.images &&
+                    selectedProduct.images.length > 1 && (
+                      <div className="flex justify-center gap-2 overflow-x-auto pb-2 px-2">
+                        {selectedProduct.images.map((img, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setSelectedImageIndex(idx)}
+                            className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                              selectedImageIndex === idx
+                                ? "border-[#a8bba3] shadow-md"
+                                : "border-[#E8E4DA] hover:border-[#a8bba3]"
+                            }`}
+                          >
+                            <img
+                              src={img}
+                              alt={`${selectedProduct.name} - Image ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "/logos/Main logo.png";
+                                target.className =
+                                  "w-full h-full object-contain opacity-30";
+                              }}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                 </div>
               )}
 
@@ -1009,11 +1155,6 @@ export default function OrdersPage() {
                           <div className="flex-1">
                             <p className="font-semibold text-[#1C1C1C] text-sm sm:text-base">
                               {variant.weight}
-                              {expanded.purity && (
-                                <span className="ml-2 text-[#86837D] font-normal">
-                                  ({expanded.purity}% Purity)
-                                </span>
-                              )}
                             </p>
                             {/* Dimensions */}
                             {(variant.width ||
@@ -1066,9 +1207,28 @@ export default function OrdersPage() {
                             >
                               <Minus className="w-4 h-4" />
                             </button>
-                            <span className="w-12 text-center font-semibold text-[#1C1C1C] text-sm sm:text-base">
-                              {variantQuantities[expanded.key] || 0}
-                            </span>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={variantQuantities[expanded.key] || 0}
+                              onChange={(e) =>
+                                handleQuantityChange(
+                                  expanded.key,
+                                  e.target.value
+                                )
+                              }
+                              onBlur={(e) => {
+                                // Ensure value is at least 0 on blur
+                                const value = parseInt(e.target.value, 10);
+                                if (isNaN(value) || value < 0) {
+                                  setVariantQuantities((prev) => ({
+                                    ...prev,
+                                    [expanded.key]: 0,
+                                  }));
+                                }
+                              }}
+                              className="w-16 text-center font-semibold text-[#1C1C1C] text-sm sm:text-base border border-[#E8E4DA] rounded-lg px-2 py-1 focus:outline-none focus:border-[#a8bba3] focus:ring-1 focus:ring-[#a8bba3] min-h-[44px]"
+                            />
                             <button
                               onClick={() =>
                                 updateVariantQuantity(expanded.key, 1)

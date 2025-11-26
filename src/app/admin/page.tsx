@@ -210,23 +210,25 @@ export default function AdminDashboard() {
   // Helper function to map database status to frontend status
   const mapDbStatusToFrontend = (dbStatus: string): Order["status"] => {
     const statusMap: { [key: string]: Order["status"] } = {
-      'PENDING': 'pending',
-      'PROCESSING': 'processing',
-      'SHIPPED': 'completed', // Map SHIPPED to completed for frontend
-      'DELIVERED': 'delivered',
-      'CANCELLED': 'pending', // Map cancelled to pending
+      PENDING: "pending",
+      PROCESSING: "processing",
+      SHIPPED: "completed", // Map SHIPPED to completed for frontend
+      DELIVERED: "delivered",
+      CANCELLED: "pending", // Map cancelled to pending
     };
-    return statusMap[dbStatus?.toUpperCase()] || 'pending';
+    return statusMap[dbStatus?.toUpperCase()] || "pending";
   };
 
   // Helper function to map database payment status to frontend payment status
-  const mapDbPaymentStatusToFrontend = (dbPaymentStatus: string): Order["paymentStatus"] => {
+  const mapDbPaymentStatusToFrontend = (
+    dbPaymentStatus: string
+  ): Order["paymentStatus"] => {
     const paymentStatusMap: { [key: string]: Order["paymentStatus"] } = {
-      'PENDING': 'pending',
-      'PAID': 'paid',
-      'REFUNDED': 'refunded',
+      PENDING: "pending",
+      PAID: "paid",
+      REFUNDED: "refunded",
     };
-    return paymentStatusMap[dbPaymentStatus?.toUpperCase()] || 'pending';
+    return paymentStatusMap[dbPaymentStatus?.toUpperCase()] || "pending";
   };
 
   const fetchUsers = async () => {
@@ -279,14 +281,14 @@ export default function AdminDashboard() {
         console.log("Transformed products:", transformedProducts.length);
         console.log("Selected category:", selectedCategory);
         setAllProducts(transformedProducts);
-        
+
         // Extract unique categories from products and update category list
         const uniqueCategories = Array.from(
           new Set(transformedProducts.map((p) => p.category).filter(Boolean))
         ).sort();
         const updatedCategories = ["All Categories", ...uniqueCategories];
         setProductCategories(updatedCategories);
-        
+
         // Apply category filter to products
         if (selectedCategory === "All Categories") {
           setProducts(transformedProducts);
@@ -334,6 +336,7 @@ export default function AdminDashboard() {
               productName: item.productName || "Unknown Product",
               quantity: item.quantity || 1,
               category: item.category || "N/A",
+              purity: item.purity || undefined,
             })),
             message: "",
             status: q.status?.toLowerCase() || "pending",
@@ -385,7 +388,8 @@ export default function AdminDashboard() {
             })),
             totalAmount,
             status: mapDbStatusToFrontend(o.status) || "pending",
-            paymentStatus: mapDbPaymentStatusToFrontend(o.paymentStatus) || "pending",
+            paymentStatus:
+              mapDbPaymentStatusToFrontend(o.paymentStatus) || "pending",
             createdAt: new Date(o.createdAt).toISOString(),
             shippingAddress: "", // Not stored in current schema
             businessName: o.businessName || undefined,
@@ -590,9 +594,9 @@ export default function AdminDashboard() {
 
         setAllProducts([...allProducts, savedProduct]);
 
-    // Update displayed products based on current filter
-    if (
-      selectedCategory === "All Categories" ||
+        // Update displayed products based on current filter
+        if (
+          selectedCategory === "All Categories" ||
           selectedCategory === savedProduct.category
         ) {
           setProducts([...products, savedProduct]);
@@ -658,20 +662,20 @@ export default function AdminDashboard() {
             })) || [],
         };
 
-    // Update in all products
-    const updatedAllProducts = allProducts.map((p) =>
+        // Update in all products
+        const updatedAllProducts = allProducts.map((p) =>
           p.id === savedProduct.id ? savedProduct : p
-    );
-    setAllProducts(updatedAllProducts);
+        );
+        setAllProducts(updatedAllProducts);
 
-    // Update in displayed products
-    const updatedProducts = products.map((p) =>
+        // Update in displayed products
+        const updatedProducts = products.map((p) =>
           p.id === savedProduct.id ? savedProduct : p
-    );
-    setProducts(updatedProducts);
+        );
+        setProducts(updatedProducts);
 
-    // Reset editing state
-    setEditingProduct(null);
+        // Reset editing state
+        setEditingProduct(null);
 
         toast.success("Product updated successfully!");
       } else {
@@ -780,32 +784,32 @@ export default function AdminDashboard() {
   ) => {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ status: newStatus }),
       });
 
       if (response.ok) {
-    const updatedOrders = orders.map((o) =>
-      o.id === orderId ? { ...o, status: newStatus } : o
-    );
-    setOrders(updatedOrders);
-    
-    // Update selectedOrder if it's the one being updated
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder({ ...selectedOrder, status: newStatus });
-    }
-    
-    toast.success(`Order status updated to ${newStatus}!`);
+        const updatedOrders = orders.map((o) =>
+          o.id === orderId ? { ...o, status: newStatus } : o
+        );
+        setOrders(updatedOrders);
+
+        // Update selectedOrder if it's the one being updated
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus });
+        }
+
+        toast.success(`Order status updated to ${newStatus}!`);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || 'Failed to update order status');
+        toast.error(errorData.error || "Failed to update order status");
       }
     } catch (error) {
-      console.error('Error updating order status:', error);
-      toast.error('Failed to update order status');
+      console.error("Error updating order status:", error);
+      toast.error("Failed to update order status");
     }
   };
 
@@ -815,9 +819,9 @@ export default function AdminDashboard() {
   ) => {
     try {
       const response = await fetch(`/api/orders/${orderId}`, {
-        method: 'PUT',
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ paymentStatus: newPaymentStatus }),
       });
@@ -830,17 +834,20 @@ export default function AdminDashboard() {
 
         // Update selectedOrder if it's the one being updated
         if (selectedOrder && selectedOrder.id === orderId) {
-          setSelectedOrder({ ...selectedOrder, paymentStatus: newPaymentStatus });
+          setSelectedOrder({
+            ...selectedOrder,
+            paymentStatus: newPaymentStatus,
+          });
         }
 
         toast.success(`Payment status updated to ${newPaymentStatus}!`);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || 'Failed to update payment status');
+        toast.error(errorData.error || "Failed to update payment status");
       }
     } catch (error) {
-      console.error('Error updating payment status:', error);
-      toast.error('Failed to update payment status');
+      console.error("Error updating payment status:", error);
+      toast.error("Failed to update payment status");
     }
   };
 
@@ -1228,21 +1235,24 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center gap-3">
                         {!quote.userId && (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200"
+                          >
                             New User
                           </Badge>
                         )}
-                      <Badge
-                        variant={
-                          quote.status === "pending"
-                            ? "default"
-                            : quote.status === "sent"
-                              ? "secondary"
-                              : "destructive"
-                        }
-                      >
-                        {quote.status}
-                      </Badge>
+                        <Badge
+                          variant={
+                            quote.status === "pending"
+                              ? "default"
+                              : quote.status === "sent"
+                                ? "secondary"
+                                : "destructive"
+                          }
+                        >
+                          {quote.status}
+                        </Badge>
                         <button
                           onClick={(e) => handleDeleteQuote(quote.id, e)}
                           className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
@@ -1275,53 +1285,53 @@ export default function AdminDashboard() {
                     <p className="text-gray-500 text-lg">There are no orders</p>
                   </div>
                 ) : (
-                <div className="space-y-2">
-                  {orders.map((order) => (
-                    <div
-                      key={order.id}
-                      onClick={() => handleOrderClick(order)}
-                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center font-semibold">
-                          {order.customerName.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {order.customerName}
-                          </h3>
-                          <p className="text-sm text-gray-500">
+                  <div className="space-y-2">
+                    {orders.map((order) => (
+                      <div
+                        key={order.id}
+                        onClick={() => handleOrderClick(order)}
+                        className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center font-semibold">
+                            {order.customerName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg">
+                              {order.customerName}
+                            </h3>
+                            <p className="text-sm text-gray-500">
                               {order.orderNumber ||
                                 order.id.substring(0, 6).toUpperCase()}{" "}
                               • {new Date(order.createdAt).toLocaleDateString()}
-                          </p>
+                            </p>
+                          </div>
                         </div>
-                      </div>
                         <div className="flex items-center gap-3">
-                        <Badge
-                          variant={
-                            order.status === "delivered"
-                              ? "secondary"
-                              : order.status === "completed"
-                                ? "default"
-                                : order.status === "processing"
+                          <Badge
+                            variant={
+                              order.status === "delivered"
+                                ? "secondary"
+                                : order.status === "completed"
                                   ? "default"
+                                  : order.status === "processing"
+                                    ? "default"
+                                    : "outline"
+                            }
+                          >
+                            {order.status}
+                          </Badge>
+                          <Badge
+                            variant={
+                              order.paymentStatus === "paid"
+                                ? "default"
+                                : order.paymentStatus === "refunded"
+                                  ? "destructive"
                                   : "outline"
-                          }
-                        >
-                          {order.status}
-                        </Badge>
-                        <Badge
-                          variant={
-                            order.paymentStatus === "paid"
-                              ? "default"
-                              : order.paymentStatus === "refunded"
-                                ? "destructive"
-                                : "outline"
-                          }
-                        >
-                          {order.paymentStatus}
-                        </Badge>
+                            }
+                          >
+                            {order.paymentStatus}
+                          </Badge>
                           <button
                             onClick={(e) => handleDeleteOrder(order.id, e)}
                             className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
@@ -1329,10 +1339,10 @@ export default function AdminDashboard() {
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>

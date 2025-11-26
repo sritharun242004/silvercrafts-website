@@ -1,12 +1,19 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { X, ShoppingCart, Sparkles, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import { categories, products, Product } from '@/data/products';
-import BackButton from '@/components/BackButton';
-import { QUOTE_STEPS, CAROUSEL_CONFIG } from '@/config/constants';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import {
+  X,
+  ShoppingCart,
+  Sparkles,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { categories, products, Product } from "@/data/products";
+import BackButton from "@/components/BackButton";
+import { QUOTE_STEPS, CAROUSEL_CONFIG } from "@/config/constants";
 
 interface QuoteItem {
   product: Product;
@@ -16,58 +23,107 @@ interface QuoteItem {
 export default function QuotationPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  
+
   // State Management
-  const [allProducts] = useState<Product[]>(products);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedPurity, setSelectedPurity] = useState<string>("80");
   const categoryCarouselRef = useRef<HTMLDivElement>(null);
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formData, setFormData] = useState({
-    businessName: '',
-    yourName: '',
-    designation: '',
-    phone: '',
-    email: '',
-    gstin: ''
+    businessName: "",
+    yourName: "",
+    designation: "",
+    phone: "",
+    email: "",
+    gstin: "",
   });
 
-  const handleNavigate = (page: 'home' | 'quote') => {
-    if (page === 'home') {
-      router.push('/');
+  const handleNavigate = (page: "home" | "quote") => {
+    if (page === "home") {
+      router.push("/");
     } else {
-      router.push('/quotation');
+      router.push("/quotation");
     }
   };
 
   useEffect(() => {
-    setFilteredProducts(allProducts);
-  }, [allProducts]);
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/products");
+      if (response.ok) {
+        const data = await response.json();
+        const fetchedProducts: Product[] = (data.products || []).map(
+          (p: any) => ({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            image: p.image || "/logos/Main logo.png",
+            weightRange: p.weightRange || "",
+            variants: (p.variants || []).map((v: any) => ({
+              id: v.id,
+              weight: v.weight,
+              dimensions: v.dimensions,
+              width: v.width,
+              height: v.height,
+              diameter: v.diameter,
+              description: v.description,
+              purities: v.purities || [],
+            })),
+          })
+        );
+        setAllProducts(fetchedProducts);
+      } else {
+        console.error("Failed to fetch products");
+        // Fallback to static products if API fails
+        setAllProducts(products);
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      // Fallback to static products if API fails
+      setAllProducts(products);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter products by category only (no purity filtering for quotation page)
+  useEffect(() => {
+    let filtered = allProducts;
+
+    // Filter by category only
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((p) => p.category === selectedCategory);
+    }
+
+    setFilteredProducts(filtered);
+  }, [allProducts, selectedCategory]);
 
   const handleCategoryClick = useCallback((categoryId: string) => {
     setSelectedCategory(categoryId);
 
-    if (categoryId === 'all') {
-      setFilteredProducts(allProducts);
-    } else {
-      const filtered = allProducts.filter((p) => p.category === categoryId);
-      setFilteredProducts(filtered);
-    }
-
     setTimeout(() => {
-      const productsSection = document.getElementById('products-section');
+      const productsSection = document.getElementById("products-section");
       if (productsSection) {
-        productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        productsSection.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 100);
-  }, [allProducts]);
+  }, []);
 
   const addToQuote = useCallback((product: Product) => {
     setQuoteItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.product.id === product.id);
+      const existingItem = prevItems.find(
+        (item) => item.product.id === product.id
+      );
       if (existingItem) {
         return prevItems;
       }
@@ -79,18 +135,18 @@ export default function QuotationPage() {
     const newItems = filteredProducts.filter(
       (product) => !quoteItems.some((item) => item.product.id === product.id)
     );
-    
+
     if (newItems.length > 0) {
       setQuoteItems((prevItems) => [
         ...prevItems,
-        ...newItems.map((product) => ({ product, quantity: 1 }))
+        ...newItems.map((product) => ({ product, quantity: 1 })),
       ]);
     }
   }, [filteredProducts, quoteItems]);
 
   const deselectAllFiltered = useCallback(() => {
     const filteredProductIds = filteredProducts.map((p) => p.id);
-    setQuoteItems((prevItems) => 
+    setQuoteItems((prevItems) =>
       prevItems.filter((item) => !filteredProductIds.includes(item.product.id))
     );
   }, [filteredProducts]);
@@ -106,15 +162,17 @@ export default function QuotationPage() {
   const uniqueProductCount = quoteItems.length;
 
   const removeItem = useCallback((productId: string) => {
-    setQuoteItems((prevItems) => prevItems.filter((item) => item.product.id !== productId));
+    setQuoteItems((prevItems) =>
+      prevItems.filter((item) => item.product.id !== productId)
+    );
   }, []);
 
   const submitQuote = async (quoteData: any) => {
     try {
-      const response = await fetch('/api/quotes', {
-        method: 'POST',
+      const response = await fetch("/api/quotes", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(quoteData),
       });
@@ -123,23 +181,23 @@ export default function QuotationPage() {
         setShowQuoteForm(false);
         setShowConfirmation(true);
         setTimeout(() => {
-          const confetti = document.createElement('div');
-          confetti.className = 'confetti-explosion';
+          const confetti = document.createElement("div");
+          confetti.className = "confetti-explosion";
           document.body.appendChild(confetti);
           setTimeout(() => confetti.remove(), 3000);
         }, 100);
       } else {
-        alert('Failed to submit quote request. Please try again.');
+        alert("Failed to submit quote request. Please try again.");
       }
     } catch (error) {
-      console.error('Error submitting quote:', error);
-      alert('Failed to submit quote request. Please try again.');
+      console.error("Error submitting quote:", error);
+      alert("Failed to submit quote request. Please try again.");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const quoteData = {
       name: formData.yourName,
       email: formData.email,
@@ -147,10 +205,11 @@ export default function QuotationPage() {
       businessName: formData.businessName,
       designation: formData.designation,
       gstin: formData.gstin,
-      items: quoteItems.map(item => ({
+      items: quoteItems.map((item) => ({
         productName: item.product.name,
         quantity: item.quantity,
         category: item.product.category,
+        purity: selectedPurity,
       })),
     };
 
@@ -161,16 +220,17 @@ export default function QuotationPage() {
     if (session?.user) {
       // User is logged in, submit directly without form
       const quoteData = {
-        name: session.user.name || '',
-        email: session.user.email || '',
+        name: session.user.name || "",
+        email: session.user.email || "",
         phone: null,
         businessName: session.user.companyName || null,
         designation: null,
         gstin: session.user.gstNo || null,
-        items: quoteItems.map(item => ({
+        items: quoteItems.map((item) => ({
           productName: item.product.name,
           quantity: item.quantity,
           category: item.product.category,
+          purity: selectedPurity,
         })),
       };
       submitQuote(quoteData);
@@ -180,22 +240,34 @@ export default function QuotationPage() {
     }
   };
 
-  const categoriesWithAll = [{ id: 'all', name: 'All Categories', image: null }, ...categories];
+  const categoriesWithAll = [
+    { id: "all", name: "All Categories", image: null },
+    ...categories,
+  ];
 
   return (
     <div className="bg-[#FAF9F7] min-h-screen">
       <BackButton onNavigate={handleNavigate} />
-      
-      <section id="quote-hero" className="pt-24 sm:pt-28 md:pt-32 pb-12 sm:pb-14 md:pb-16 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]">
+
+      <section
+        id="quote-hero"
+        className="pt-24 sm:pt-28 md:pt-32 pb-12 sm:pb-14 md:pb-16 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]"
+      >
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
           <div className="space-y-4 sm:space-y-5 md:space-y-6">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light text-[#1C1C1C] leading-tight">
-              Silver Crafts<sup className="text-xs ml-0.5" style={{ fontSize: '0.4em', verticalAlign: 'super' }}>™</sup>
+              Silver Crafts
+              <sup
+                className="text-xs ml-0.5"
+                style={{ fontSize: "0.4em", verticalAlign: "super" }}
+              >
+                ™
+              </sup>
             </h1>
             <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-normal text-[#1C1C1C] leading-snug">
               Your quotation request list is a few clicks away
             </h2>
-            
+
             <div className="flex flex-col gap-2.5 sm:gap-3 py-3 sm:py-4">
               {QUOTE_STEPS.map((milestone, index) => (
                 <div key={index} className="flex items-start gap-2 sm:gap-3">
@@ -231,21 +303,27 @@ export default function QuotationPage() {
         </div>
       </section>
 
-      <section id="categories-section" className="py-10 sm:py-12 md:py-14 px-4 sm:px-6 bg-[#FAF9F7] border-b border-[#EDEAE2]">
+      <section
+        id="categories-section"
+        className="py-10 sm:py-12 md:py-14 px-4 sm:px-6 bg-[#FAF9F7] border-b border-[#EDEAE2]"
+      >
         <div className="max-w-7xl mx-auto">
           <h3 className="text-xl sm:text-2xl md:text-3xl font-light text-center text-[#1C1C1C] mb-8 sm:mb-9 md:mb-10 px-4">
             Select Category
           </h3>
 
-          <div className="relative" style={{ position: 'relative', minHeight: '140px' }}>
+          <div
+            className="relative"
+            style={{ position: "relative", minHeight: "140px" }}
+          >
             <button
               onClick={(e) => {
                 e.preventDefault();
                 const carousel = categoryCarouselRef.current;
                 if (carousel) {
-                  carousel.scrollBy({ 
-                    left: -CAROUSEL_CONFIG.scrollAmount, 
-                    behavior: 'smooth' 
+                  carousel.scrollBy({
+                    left: -CAROUSEL_CONFIG.scrollAmount,
+                    behavior: "smooth",
                   });
                 }
               }}
@@ -260,9 +338,9 @@ export default function QuotationPage() {
                 e.preventDefault();
                 const carousel = categoryCarouselRef.current;
                 if (carousel) {
-                  carousel.scrollBy({ 
-                    left: CAROUSEL_CONFIG.scrollAmount, 
-                    behavior: 'smooth' 
+                  carousel.scrollBy({
+                    left: CAROUSEL_CONFIG.scrollAmount,
+                    behavior: "smooth",
                   });
                 }
               }}
@@ -272,58 +350,60 @@ export default function QuotationPage() {
             >
               <ChevronRight className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#a8bba3]" />
             </button>
-            
+
             <div className="overflow-hidden">
-              <div 
+              <div
                 ref={categoryCarouselRef}
                 className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-10 sm:px-11 md:px-12"
-                style={{ 
-                  scrollBehavior: 'smooth', 
-                  position: 'relative', 
+                style={{
+                  scrollBehavior: "smooth",
+                  position: "relative",
                   zIndex: 1,
-                  WebkitOverflowScrolling: 'touch'
+                  WebkitOverflowScrolling: "touch",
                 }}
               >
                 {categoriesWithAll.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
                   return (
-                  <button
-                    key={`${category.id}-${index}`}
-                    type="button"
-                    onClick={() => handleCategoryClick(category.id)}
-                    className={`group relative flex-shrink-0 w-28 h-28 sm:w-30 sm:h-30 md:w-32 md:h-32 rounded-lg sm:rounded-xl overflow-hidden border-2 ${
-                      isSelected ? 'border-[#a8bba3] bg-[#F3F7F1] shadow-lg' : 'border-[#E8E4DA] bg-white'
-                    } transition-all duration-300 cursor-pointer hover:shadow-lg min-h-[44px]`}
-                    aria-label={`Select ${category.name} category`}
-                  >
-                    {category.image ? (
-                      <>
-                        <img
-                          src={category.image}
-                          alt={category.name}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.style.backgroundColor = '#F5F5F5';
-                            }
-                          }}
-                        />
-                        <div className="absolute inset-x-2 sm:inset-x-3 bottom-0.5 rounded-full bg-white/90 px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-medium text-[#1C1C1C] tracking-wide shadow-sm">
-                          {category.name}
+                    <button
+                      key={`${category.id}-${index}`}
+                      type="button"
+                      onClick={() => handleCategoryClick(category.id)}
+                      className={`group relative flex-shrink-0 w-28 h-28 sm:w-30 sm:h-30 md:w-32 md:h-32 rounded-lg sm:rounded-xl overflow-hidden border-2 ${
+                        isSelected
+                          ? "border-[#a8bba3] bg-[#F3F7F1] shadow-lg"
+                          : "border-[#E8E4DA] bg-white"
+                      } transition-all duration-300 cursor-pointer hover:shadow-lg min-h-[44px]`}
+                      aria-label={`Select ${category.name} category`}
+                    >
+                      {category.image ? (
+                        <>
+                          <img
+                            src={category.image}
+                            alt={category.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.style.backgroundColor = "#F5F5F5";
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-x-2 sm:inset-x-3 bottom-0.5 rounded-full bg-white/90 px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-medium text-[#1C1C1C] tracking-wide shadow-sm">
+                            {category.name}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#C06014]/10 to-[#C06014]/5">
+                          <span className="text-xs sm:text-sm font-medium text-[#a8bba3] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border-2 border-[#a8bba3] bg-white">
+                            All
+                          </span>
                         </div>
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#C06014]/10 to-[#C06014]/5">
-                        <span className="text-xs sm:text-sm font-medium text-[#a8bba3] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border-2 border-[#a8bba3] bg-white">
-                          All
-                        </span>
-                      </div>
-                    )}
-                  </button>
+                      )}
+                    </button>
                   );
                 })}
               </div>
@@ -332,27 +412,63 @@ export default function QuotationPage() {
         </div>
       </section>
 
-      <section id="products-section" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white">
+      <section
+        id="products-section"
+        className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white"
+      >
         <div className="max-w-7xl mx-auto">
           <div className="relative mb-8 sm:mb-10 md:mb-12 px-4">
             <div className="text-center">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-normal text-[#1C1C1C] mb-2">
-                {selectedCategory === 'all' ? 'All Products' : categories.find(c => c.id === selectedCategory)?.name || 'Products'}
+                {selectedCategory === "all"
+                  ? "All Products"
+                  : categories.find((c) => c.id === selectedCategory)?.name ||
+                    "Products"}
               </h2>
               <p className="text-sm sm:text-base text-[#5A5A5A]">
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} available
+                {filteredProducts.length}{" "}
+                {filteredProducts.length === 1 ? "product" : "products"}{" "}
+                available
               </p>
             </div>
-            
+
             {filteredProducts.length > 0 && (
-              <div className="absolute right-4 top-0 flex flex-wrap items-start justify-end gap-3">
+              <div className="absolute right-4 top-0 flex flex-wrap items-center justify-end gap-3">
+                {/* Purity Label and Toggle */}
+                <div className="flex flex-col items-center gap-1">
+                  <span className="text-xs sm:text-sm text-[#6F6F6F] font-medium">
+                    Purity
+                  </span>
+                  <div className="flex items-center gap-0 bg-white border border-[#E8E4DA] rounded-full px-1 min-h-[44px]">
+                    <button
+                      onClick={() => setSelectedPurity("80")}
+                      className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
+                        selectedPurity === "80"
+                          ? "bg-[#a8bba3] text-white"
+                          : "text-[#6F6F6F] hover:bg-gray-100"
+                      }`}
+                    >
+                      80%
+                    </button>
+                    <button
+                      onClick={() => setSelectedPurity("92.5")}
+                      className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
+                        selectedPurity === "92.5"
+                          ? "bg-[#a8bba3] text-white"
+                          : "text-[#6F6F6F] hover:bg-gray-100"
+                      }`}
+                    >
+                      92.5%
+                    </button>
+                  </div>
+                </div>
                 <button
                   onClick={selectAllFiltered}
                   disabled={allFilteredSelected}
                   className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-sm font-medium transition-all duration-300 min-h-[44px] inline-flex items-center gap-2 ${
                     allFilteredSelected
-                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-[#a8bba3] text-white hover:bg-[#93a991] hover:shadow-lg'
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-[#a8bba3] text-white hover:bg-[#93a991] hover:shadow-lg"
                   }`}
                 >
                   {allFilteredSelected ? (
@@ -381,7 +497,16 @@ export default function QuotationPage() {
             )}
           </div>
 
-          {filteredProducts.length > 0 ? (
+          {loading ? (
+            <div className="text-center py-12 sm:py-16 md:py-20 px-4">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#F5F5F5] rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#a8bba3]"></div>
+              </div>
+              <p className="text-sm sm:text-base text-[#5A5A5A]">
+                Loading products...
+              </p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
               {filteredProducts.map((product) => (
                 <div
@@ -396,8 +521,9 @@ export default function QuotationPage() {
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = '/logos/Main logo.png';
-                        target.className = 'w-full h-full object-contain opacity-30';
+                        target.src = "/logos/Main logo.png";
+                        target.className =
+                          "w-full h-full object-contain opacity-30";
                       }}
                     />
                   </div>
@@ -421,10 +547,14 @@ export default function QuotationPage() {
               <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#F5F5F5] rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                 <ShoppingCart className="w-10 h-10 sm:w-12 sm:h-12 text-[#a8bba3] opacity-40" />
               </div>
-              <h3 className="text-lg sm:text-xl font-normal text-[#1C1C1C] mb-2">No Products Available</h3>
-              <p className="text-sm sm:text-base text-[#5A5A5A] mb-4 sm:mb-6">No products found in this category.</p>
+              <h3 className="text-lg sm:text-xl font-normal text-[#1C1C1C] mb-2">
+                No Products Available
+              </h3>
+              <p className="text-sm sm:text-base text-[#5A5A5A] mb-4 sm:mb-6">
+                No products found in this category.
+              </p>
               <button
-                onClick={() => handleCategoryClick('all')}
+                onClick={() => handleCategoryClick("all")}
                 className="px-5 sm:px-6 py-2.5 sm:py-3 bg-[#a8bba3] text-white rounded-full text-sm font-medium hover:bg-[#93a991] transition-colors min-h-[44px]"
               >
                 View All Products
@@ -456,14 +586,16 @@ export default function QuotationPage() {
 
       <div
         className={`fixed top-0 right-0 h-full w-full sm:w-[90vw] md:w-[450px] bg-white border-l border-[#E8E4DA] z-50 transform transition-transform duration-300 ${
-          showSidebar ? 'translate-x-0' : 'translate-x-full'
+          showSidebar ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="h-full flex flex-col">
           <div className="p-4 sm:p-5 md:p-6 border-b border-[#E8E4DA] flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
               <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-[#a8bba3]" />
-              <h3 className="text-lg sm:text-xl font-normal text-[#1C1C1C]">Quote Summary</h3>
+              <h3 className="text-lg sm:text-xl font-normal text-[#1C1C1C]">
+                Quote Summary
+              </h3>
             </div>
             <button
               onClick={() => setShowSidebar(false)}
@@ -498,7 +630,9 @@ export default function QuotationPage() {
                     loading="lazy"
                   />
                   <div className="flex-1 pr-8">
-                    <h4 className="font-normal text-[#1A1A1A] text-sm sm:text-base mb-1">{item.product.name}</h4>
+                    <h4 className="font-normal text-[#1A1A1A] text-sm sm:text-base mb-1">
+                      {item.product.name}
+                    </h4>
                   </div>
                 </div>
               ))
@@ -509,7 +643,9 @@ export default function QuotationPage() {
             <div className="p-4 sm:p-5 md:p-6 border-t border-[#E8E4DA] bg-white">
               <div className="mb-4 space-y-2">
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm text-[#86837D] mb-1">Total Products</p>
+                  <p className="text-xs sm:text-sm text-[#86837D] mb-1">
+                    Total Products
+                  </p>
                   <p className="text-lg sm:text-xl font-normal text-[#1C1C1C]">
                     {uniqueProductCount}
                   </p>
@@ -536,7 +672,9 @@ export default function QuotationPage() {
               <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-light text-[#1C1C1C] mb-5 sm:mb-6 pr-8">Add business details</h3>
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-light text-[#1C1C1C] mb-5 sm:mb-6 pr-8">
+              Add business details
+            </h3>
 
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
@@ -547,7 +685,9 @@ export default function QuotationPage() {
                   type="text"
                   required
                   value={formData.businessName}
-                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, businessName: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="Your business name"
                 />
@@ -561,7 +701,9 @@ export default function QuotationPage() {
                   type="text"
                   required
                   value={formData.yourName}
-                  onChange={(e) => setFormData({ ...formData, yourName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, yourName: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="Your full name"
                 />
@@ -575,7 +717,9 @@ export default function QuotationPage() {
                   type="text"
                   required
                   value={formData.designation}
-                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, designation: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text sm sm:text-base"
                   placeholder="e.g. Owner, Manager, Buyer"
                 />
@@ -589,7 +733,9 @@ export default function QuotationPage() {
                   type="tel"
                   required
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="+91 98765 43210"
                 />
@@ -603,7 +749,9 @@ export default function QuotationPage() {
                   type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="your@email.com"
                 />
@@ -616,7 +764,9 @@ export default function QuotationPage() {
                 <input
                   type="text"
                   value={formData.gstin}
-                  onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gstin: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="GST Number"
                 />
@@ -624,7 +774,7 @@ export default function QuotationPage() {
 
               <button
                 type="submit"
-            className="w-full px-5 sm:px-6 py-3 bg-[#a8bba3] text-white rounded-full text-sm font-medium transition-colors duration-300 hover:bg-[#93a991] mt-4 sm:mt-6 min-h-[44px]"
+                className="w-full px-5 sm:px-6 py-3 bg-[#a8bba3] text-white rounded-full text-sm font-medium transition-colors duration-300 hover:bg-[#93a991] mt-4 sm:mt-6 min-h-[44px]"
               >
                 Submit Quote Request
               </button>
@@ -649,7 +799,8 @@ export default function QuotationPage() {
             </p>
 
             <p className="text-xs sm:text-sm text-[#86837D] mb-6 sm:mb-8 px-2">
-              Once approved, you'll receive your login credentials to manage future orders.
+              Once approved, you'll receive your login credentials to manage
+              future orders.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
@@ -658,7 +809,7 @@ export default function QuotationPage() {
                   setShowConfirmation(false);
                   setQuoteItems([]);
                   setShowSidebar(false);
-                  handleNavigate('home');
+                  handleNavigate("home");
                 }}
                 className="flex-1 px-5 sm:px-6 py-3 bg-[#a8bba3] text-white rounded-full text-sm font-medium transition-colors duration-300 hover:bg-[#93a991] min-h-[44px]"
               >
@@ -681,4 +832,3 @@ export default function QuotationPage() {
     </div>
   );
 }
-

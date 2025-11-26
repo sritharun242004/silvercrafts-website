@@ -25,6 +25,7 @@ interface QuoteProduct {
   productName: string;
   quantity: number;
   category?: string;
+  purity?: string;
 }
 
 interface QuoteRequest {
@@ -142,11 +143,12 @@ const QuoteDetailsDialog = ({
             {/* Customer Information */}
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-lg">
-                  Customer Information
-                </h3>
+                <h3 className="font-semibold text-lg">Customer Information</h3>
                 {!quote.userId && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  <Badge
+                    variant="outline"
+                    className="bg-blue-50 text-blue-700 border-blue-200"
+                  >
                     New User
                   </Badge>
                 )}
@@ -221,6 +223,8 @@ const QuoteDetailsDialog = ({
                     <TableRow>
                       <TableHead>Product Name</TableHead>
                       <TableHead>Category</TableHead>
+                      <TableHead className="text-center">Purity</TableHead>
+                      <TableHead className="text-center">Quantity</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -233,6 +237,12 @@ const QuoteDetailsDialog = ({
                           {product.category || (
                             <span className="text-gray-400">N/A</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {product.purity ? `${product.purity}%` : "-"}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {product.quantity}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -349,5 +359,3 @@ const QuoteDetailsDialog = ({
 };
 
 export default QuoteDetailsDialog;
-
-
