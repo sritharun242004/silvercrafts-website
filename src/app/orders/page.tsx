@@ -1,11 +1,20 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { X, ShoppingCart, Sparkles, Plus, Minus, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
-import { categories } from '@/data/products';
-import { QUOTE_STEPS, CAROUSEL_CONFIG } from '@/config/constants';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import {
+  X,
+  ShoppingCart,
+  Sparkles,
+  Plus,
+  Minus,
+  ChevronLeft,
+  ChevronRight,
+  Eye,
+} from "lucide-react";
+import { categories } from "@/data/products";
+import { QUOTE_STEPS, CAROUSEL_CONFIG } from "@/config/constants";
 
 interface ProductVariant {
   id: string;
@@ -44,12 +53,12 @@ interface ExpandedVariant {
 export default function OrdersPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  
+
   // State Management
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const categoryCarouselRef = useRef<HTMLDivElement>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -57,29 +66,42 @@ export default function OrdersPage() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showVariantDialog, setShowVariantDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [variantQuantities, setVariantQuantities] = useState<{ [key: string]: number }>({});
+  const [variantQuantities, setVariantQuantities] = useState<{
+    [key: string]: number;
+  }>({});
   const [formData, setFormData] = useState({
-    businessName: '',
-    yourName: '',
-    designation: '',
-    phone: '',
-    email: '',
-    gstin: ''
+    businessName: "",
+    yourName: "",
+    designation: "",
+    phone: "",
+    email: "",
+    gstin: "",
   });
 
-  const handleNavigate = (page: 'home' | 'quote' | 'order') => {
-    if (page === 'home') {
-      router.push('/');
-    } else if (page === 'quote') {
-      router.push('/quotation');
+  const handleNavigate = (page: "home" | "quote" | "order") => {
+    if (page === "home") {
+      router.push("/");
+    } else if (page === "quote") {
+      router.push("/quotation");
     } else {
-      router.push('/orders');
+      router.push("/orders");
     }
   };
 
+  // Check authentication and redirect if not logged in
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (session === null) {
+      // Session is loaded but user is not authenticated
+      router.push(`/auth?callbackUrl=${encodeURIComponent("/orders")}`);
+    }
+  }, [session, router]);
+
+  useEffect(() => {
+    // Only fetch products if user is authenticated
+    if (session?.user) {
+      fetchProducts();
+    }
+  }, [session]);
 
   useEffect(() => {
     setFilteredProducts(allProducts);
@@ -88,15 +110,15 @@ export default function OrdersPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/products');
+      const response = await fetch("/api/products");
       if (response.ok) {
         const data = await response.json();
         const products: Product[] = (data.products || []).map((p: any) => ({
           id: p.id,
           name: p.name,
           category: p.category,
-          image: p.image || '/logos/Main logo.png',
-          weightRange: p.weightRange || '',
+          image: p.image || "/logos/Main logo.png",
+          weightRange: p.weightRange || "",
           variants: (p.variants || []).map((v: any) => ({
             id: v.id,
             weight: v.weight,
@@ -111,10 +133,10 @@ export default function OrdersPage() {
         setAllProducts(products);
         setFilteredProducts(products);
       } else {
-        console.error('Failed to fetch products');
+        console.error("Failed to fetch products");
       }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
     }
@@ -123,100 +145,118 @@ export default function OrdersPage() {
   // Helper function to normalize category names
   const normalizeCategory = (categoryName: string): string => {
     const categoryMap: { [key: string]: string } = {
-      'vessels': 'Vessels',
-      'lamps': 'Lamps',
-      'coins': 'Coins & Bars',
-      'bowl': 'Bowl',
-      'boxes': 'Boxes',
-      'chombu': 'Chombu',
-      'cups': 'Cups',
-      'glass': 'Glass',
-      'kamakshi': 'Kamakshi',
-      'kodam': 'Kodam',
-      'others': 'Others',
-      'panchapathram': 'Panchapathram',
-      'plates': 'Plates',
-      'simil': 'Simil',
-      'trays': 'Trays',
-      'vel': 'Vel'
+      vessels: "Vessels",
+      lamps: "Lamps",
+      coins: "Coins & Bars",
+      bowl: "Bowl",
+      boxes: "Boxes",
+      chombu: "Chombu",
+      cups: "Cups",
+      glass: "Glass",
+      kamakshi: "Kamakshi",
+      kodam: "Kodam",
+      others: "Others",
+      panchapathram: "Panchapathram",
+      plates: "Plates",
+      simil: "Simil",
+      trays: "Trays",
+      vel: "Vel",
     };
     return categoryMap[categoryName] || categoryName;
   };
 
-  const handleCategoryClick = useCallback((categoryId: string) => {
-    setSelectedCategory(categoryId);
+  const handleCategoryClick = useCallback(
+    (categoryId: string) => {
+      setSelectedCategory(categoryId);
 
-    if (categoryId === 'all') {
-      setFilteredProducts(allProducts);
-    } else {
-      const categoryName = normalizeCategory(categoryId);
-      const filtered = allProducts.filter((p) => p.category === categoryName);
-      setFilteredProducts(filtered);
-    }
-
-    setTimeout(() => {
-      const productsSection = document.getElementById('products-section');
-      if (productsSection) {
-        productsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (categoryId === "all") {
+        setFilteredProducts(allProducts);
+      } else {
+        const categoryName = normalizeCategory(categoryId);
+        const filtered = allProducts.filter((p) => p.category === categoryName);
+        setFilteredProducts(filtered);
       }
-    }, 100);
-  }, [allProducts]);
+
+      setTimeout(() => {
+        const productsSection = document.getElementById("products-section");
+        if (productsSection) {
+          productsSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 100);
+    },
+    [allProducts]
+  );
 
   // Helper function to expand variants by purity
-  const expandVariantsByPurity = useCallback((variants: ProductVariant[]): ExpandedVariant[] => {
-    const expanded: ExpandedVariant[] = [];
-    variants.forEach((variant) => {
-      if (variant.purities && variant.purities.length > 0) {
-        variant.purities.forEach((purity) => {
+  const expandVariantsByPurity = useCallback(
+    (variants: ProductVariant[]): ExpandedVariant[] => {
+      const expanded: ExpandedVariant[] = [];
+      variants.forEach((variant) => {
+        if (variant.purities && variant.purities.length > 0) {
+          variant.purities.forEach((purity) => {
+            expanded.push({
+              baseVariant: variant,
+              purity,
+              key: `${variant.id}-${purity}`,
+            });
+          });
+        } else {
+          // If no purities, still show the variant
           expanded.push({
             baseVariant: variant,
-            purity,
-            key: `${variant.id}-${purity}`,
+            purity: "",
+            key: `${variant.id}-none`,
           });
-        });
-      } else {
-        // If no purities, still show the variant
-        expanded.push({
-          baseVariant: variant,
-          purity: '',
-          key: `${variant.id}-none`,
-        });
-      }
-    });
-    return expanded;
-  }, []);
+        }
+      });
+      return expanded;
+    },
+    []
+  );
 
-  const openVariantDialog = useCallback((product: Product) => {
-    setSelectedProduct(product);
-    setShowVariantDialog(true);
-    // Initialize variant quantities from existing order items
-    const initialQuantities: { [key: string]: number } = {};
-    const expandedVariants = expandVariantsByPurity(product.variants || []);
-    expandedVariants.forEach((expanded) => {
-      const existing = orderItems.find(
-        (item) => item.product.id === product.id && 
-                  item.variant.id === expanded.baseVariant.id &&
-                  item.purity === expanded.purity
-      );
-      initialQuantities[expanded.key] = existing ? existing.quantity : 0;
-    });
-    setVariantQuantities(initialQuantities);
-  }, [orderItems, expandVariantsByPurity]);
+  const openVariantDialog = useCallback(
+    (product: Product) => {
+      setSelectedProduct(product);
+      setShowVariantDialog(true);
+      // Initialize variant quantities from existing order items
+      const initialQuantities: { [key: string]: number } = {};
+      const expandedVariants = expandVariantsByPurity(product.variants || []);
+      expandedVariants.forEach((expanded) => {
+        const existing = orderItems.find(
+          (item) =>
+            item.product.id === product.id &&
+            item.variant.id === expanded.baseVariant.id &&
+            item.purity === expanded.purity
+        );
+        initialQuantities[expanded.key] = existing ? existing.quantity : 0;
+      });
+      setVariantQuantities(initialQuantities);
+    },
+    [orderItems, expandVariantsByPurity]
+  );
 
-  const updateVariantQuantity = useCallback((variantId: string, delta: number) => {
-    setVariantQuantities((prev) => {
-      const current = prev[variantId] || 0;
-      const newValue = Math.max(0, current + delta);
-      return { ...prev, [variantId]: newValue };
-    });
-  }, []);
+  const updateVariantQuantity = useCallback(
+    (variantId: string, delta: number) => {
+      setVariantQuantities((prev) => {
+        const current = prev[variantId] || 0;
+        const newValue = Math.max(0, current + delta);
+        return { ...prev, [variantId]: newValue };
+      });
+    },
+    []
+  );
 
   const addVariantsToCart = useCallback(() => {
     if (!selectedProduct) return;
 
     const newItems: OrderItem[] = [];
-    const expandedVariants = expandVariantsByPurity(selectedProduct.variants || []);
-    
+    const expandedVariants = expandVariantsByPurity(
+      selectedProduct.variants || []
+    );
+
     expandedVariants.forEach((expanded) => {
       const quantity = variantQuantities[expanded.key] || 0;
       if (quantity > 0) {
@@ -239,25 +279,30 @@ export default function OrdersPage() {
     setSelectedProduct(null);
   }, [selectedProduct, variantQuantities, orderItems, expandVariantsByPurity]);
 
-
   const uniqueProductCount = orderItems.length;
 
-  const removeItem = useCallback((productId: string, variantId: string, purity: string) => {
-    setOrderItems((prevItems) => 
-      prevItems.filter((item) => !(
-        item.product.id === productId && 
-        item.variant.id === variantId &&
-        item.purity === purity
-      ))
-    );
-  }, []);
+  const removeItem = useCallback(
+    (productId: string, variantId: string, purity: string) => {
+      setOrderItems((prevItems) =>
+        prevItems.filter(
+          (item) =>
+            !(
+              item.product.id === productId &&
+              item.variant.id === variantId &&
+              item.purity === purity
+            )
+        )
+      );
+    },
+    []
+  );
 
   const submitOrder = async (orderData: any) => {
     try {
-      const response = await fetch('/api/orders', {
-        method: 'POST',
+      const response = await fetch("/api/orders", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(orderData),
       });
@@ -266,23 +311,23 @@ export default function OrdersPage() {
         setShowOrderForm(false);
         setShowConfirmation(true);
         setTimeout(() => {
-          const confetti = document.createElement('div');
-          confetti.className = 'confetti-explosion';
+          const confetti = document.createElement("div");
+          confetti.className = "confetti-explosion";
           document.body.appendChild(confetti);
           setTimeout(() => confetti.remove(), 3000);
         }, 100);
       } else {
-        alert('Failed to submit order request. Please try again.');
+        alert("Failed to submit order request. Please try again.");
       }
     } catch (error) {
-      console.error('Error submitting order:', error);
-      alert('Failed to submit order request. Please try again.');
+      console.error("Error submitting order:", error);
+      alert("Failed to submit order request. Please try again.");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const orderData = {
       name: formData.yourName,
       email: formData.email,
@@ -290,7 +335,7 @@ export default function OrdersPage() {
       businessName: formData.businessName,
       designation: formData.designation,
       gstin: formData.gstin,
-      items: orderItems.map(item => ({
+      items: orderItems.map((item) => ({
         productId: item.product.id,
         variantId: item.variant.id,
         productName: item.product.name,
@@ -314,13 +359,13 @@ export default function OrdersPage() {
     if (session?.user) {
       // User is logged in, submit directly without form
       const orderData = {
-        name: session.user.name || '',
-        email: session.user.email || '',
+        name: session.user.name || "",
+        email: session.user.email || "",
         phone: null,
         businessName: session.user.companyName || null,
         designation: null,
         gstin: session.user.gstNo || null,
-        items: orderItems.map(item => ({
+        items: orderItems.map((item) => ({
           productId: item.product.id,
           variantId: item.variant.id,
           productName: item.product.name,
@@ -343,20 +388,51 @@ export default function OrdersPage() {
     }
   };
 
-  const categoriesWithAll = [{ id: 'all', name: 'All Categories', image: null }, ...categories];
+  const categoriesWithAll = [
+    { id: "all", name: "All Categories", image: null },
+    ...categories,
+  ];
+
+  // Show loading state while checking authentication
+  if (session === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-[#F5F5F5] rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#a8bba3]"></div>
+          </div>
+          <p className="text-sm text-[#5A5A5A]">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated, show nothing (redirect will happen via useEffect)
+  if (!session?.user) {
+    return null;
+  }
 
   return (
     <div className="bg-[#FAF9F7] min-h-screen">
-      <section id="order-hero" className="pt-24 sm:pt-28 md:pt-32 pb-12 sm:pb-14 md:pb-16 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]">
+      <section
+        id="order-hero"
+        className="pt-24 sm:pt-28 md:pt-32 pb-12 sm:pb-14 md:pb-16 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]"
+      >
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
           <div className="space-y-4 sm:space-y-5 md:space-y-6">
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light text-[#1C1C1C] leading-tight">
-              Silver Crafts<sup className="text-xs ml-0.5" style={{ fontSize: '0.4em', verticalAlign: 'super' }}>™</sup>
+              Silver Crafts
+              <sup
+                className="text-xs ml-0.5"
+                style={{ fontSize: "0.4em", verticalAlign: "super" }}
+              >
+                ™
+              </sup>
             </h1>
             <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-normal text-[#1C1C1C] leading-snug">
               Your order list is a few clicks away
             </h2>
-            
+
             <div className="flex flex-col gap-2.5 sm:gap-3 py-3 sm:py-4">
               {QUOTE_STEPS.map((milestone, index) => (
                 <div key={index} className="flex items-start gap-2 sm:gap-3">
@@ -392,21 +468,27 @@ export default function OrdersPage() {
         </div>
       </section>
 
-      <section id="categories-section" className="py-10 sm:py-12 md:py-14 px-4 sm:px-6 bg-[#FAF9F7] border-b border-[#EDEAE2]">
+      <section
+        id="categories-section"
+        className="py-10 sm:py-12 md:py-14 px-4 sm:px-6 bg-[#FAF9F7] border-b border-[#EDEAE2]"
+      >
         <div className="max-w-7xl mx-auto">
           <h3 className="text-xl sm:text-2xl md:text-3xl font-light text-center text-[#1C1C1C] mb-8 sm:mb-9 md:mb-10 px-4">
             Select Category
           </h3>
 
-          <div className="relative" style={{ position: 'relative', minHeight: '140px' }}>
+          <div
+            className="relative"
+            style={{ position: "relative", minHeight: "140px" }}
+          >
             <button
               onClick={(e) => {
                 e.preventDefault();
                 const carousel = categoryCarouselRef.current;
                 if (carousel) {
-                  carousel.scrollBy({ 
-                    left: -CAROUSEL_CONFIG.scrollAmount, 
-                    behavior: 'smooth' 
+                  carousel.scrollBy({
+                    left: -CAROUSEL_CONFIG.scrollAmount,
+                    behavior: "smooth",
                   });
                 }
               }}
@@ -421,9 +503,9 @@ export default function OrdersPage() {
                 e.preventDefault();
                 const carousel = categoryCarouselRef.current;
                 if (carousel) {
-                  carousel.scrollBy({ 
-                    left: CAROUSEL_CONFIG.scrollAmount, 
-                    behavior: 'smooth' 
+                  carousel.scrollBy({
+                    left: CAROUSEL_CONFIG.scrollAmount,
+                    behavior: "smooth",
                   });
                 }
               }}
@@ -433,58 +515,60 @@ export default function OrdersPage() {
             >
               <ChevronRight className="w-5 h-5 sm:w-5 sm:h-5 md:w-6 md:h-6 text-[#a8bba3]" />
             </button>
-            
+
             <div className="overflow-hidden">
-              <div 
+              <div
                 ref={categoryCarouselRef}
                 className="flex gap-3 sm:gap-4 overflow-x-auto scrollbar-hide px-10 sm:px-11 md:px-12"
-                style={{ 
-                  scrollBehavior: 'smooth', 
-                  position: 'relative', 
+                style={{
+                  scrollBehavior: "smooth",
+                  position: "relative",
                   zIndex: 1,
-                  WebkitOverflowScrolling: 'touch'
+                  WebkitOverflowScrolling: "touch",
                 }}
               >
                 {categoriesWithAll.map((category, index) => {
                   const isSelected = selectedCategory === category.id;
                   return (
-                  <button
-                    key={`${category.id}-${index}`}
-                    type="button"
-                    onClick={() => handleCategoryClick(category.id)}
-                    className={`group relative flex-shrink-0 w-28 h-28 sm:w-30 sm:h-30 md:w-32 md:h-32 rounded-lg sm:rounded-xl overflow-hidden border-2 ${
-                      isSelected ? 'border-[#a8bba3] bg-[#F3F7F1] shadow-lg' : 'border-[#E8E4DA] bg-white'
-                    } transition-all duration-300 cursor-pointer hover:shadow-lg min-h-[44px]`}
-                    aria-label={`Select ${category.name} category`}
-                  >
-                    {category.image ? (
-                      <>
-                        <img
-                          src={category.image}
-                          alt={category.name}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          loading="lazy"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.style.backgroundColor = '#F5F5F5';
-                            }
-                          }}
-                        />
-                        <div className="absolute inset-x-2 sm:inset-x-3 bottom-0.5 rounded-full bg-white/90 px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-medium text-[#1C1C1C] tracking-wide shadow-sm">
-                          {category.name}
+                    <button
+                      key={`${category.id}-${index}`}
+                      type="button"
+                      onClick={() => handleCategoryClick(category.id)}
+                      className={`group relative flex-shrink-0 w-28 h-28 sm:w-30 sm:h-30 md:w-32 md:h-32 rounded-lg sm:rounded-xl overflow-hidden border-2 ${
+                        isSelected
+                          ? "border-[#a8bba3] bg-[#F3F7F1] shadow-lg"
+                          : "border-[#E8E4DA] bg-white"
+                      } transition-all duration-300 cursor-pointer hover:shadow-lg min-h-[44px]`}
+                      aria-label={`Select ${category.name} category`}
+                    >
+                      {category.image ? (
+                        <>
+                          <img
+                            src={category.image}
+                            alt={category.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            loading="lazy"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.style.backgroundColor = "#F5F5F5";
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-x-2 sm:inset-x-3 bottom-0.5 rounded-full bg-white/90 px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-medium text-[#1C1C1C] tracking-wide shadow-sm">
+                            {category.name}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#C06014]/10 to-[#C06014]/5">
+                          <span className="text-xs sm:text-sm font-medium text-[#a8bba3] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border-2 border-[#a8bba3] bg-white">
+                            All
+                          </span>
                         </div>
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#C06014]/10 to-[#C06014]/5">
-                        <span className="text-xs sm:text-sm font-medium text-[#a8bba3] px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border-2 border-[#a8bba3] bg-white">
-                          All
-                        </span>
-                      </div>
-                    )}
-                  </button>
+                      )}
+                    </button>
                   );
                 })}
               </div>
@@ -493,18 +577,25 @@ export default function OrdersPage() {
         </div>
       </section>
 
-      <section id="products-section" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white">
+      <section
+        id="products-section"
+        className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white"
+      >
         <div className="max-w-7xl mx-auto">
           <div className="relative mb-8 sm:mb-10 md:mb-12 px-4">
             <div className="text-center">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-normal text-[#1C1C1C] mb-2">
-                {selectedCategory === 'all' ? 'All Products' : categories.find(c => c.id === selectedCategory)?.name || 'Products'}
+                {selectedCategory === "all"
+                  ? "All Products"
+                  : categories.find((c) => c.id === selectedCategory)?.name ||
+                    "Products"}
               </h2>
               <p className="text-sm sm:text-base text-[#5A5A5A]">
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} available
+                {filteredProducts.length}{" "}
+                {filteredProducts.length === 1 ? "product" : "products"}{" "}
+                available
               </p>
             </div>
-            
           </div>
 
           {loading ? (
@@ -512,7 +603,9 @@ export default function OrdersPage() {
               <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#F5F5F5] rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#a8bba3]"></div>
               </div>
-              <p className="text-sm sm:text-base text-[#5A5A5A]">Loading products...</p>
+              <p className="text-sm sm:text-base text-[#5A5A5A]">
+                Loading products...
+              </p>
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
@@ -529,8 +622,9 @@ export default function OrdersPage() {
                       loading="lazy"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
-                        target.src = '/logos/Main logo.png';
-                        target.className = 'w-full h-full object-contain opacity-30';
+                        target.src = "/logos/Main logo.png";
+                        target.className =
+                          "w-full h-full object-contain opacity-30";
                       }}
                     />
                   </div>
@@ -554,10 +648,14 @@ export default function OrdersPage() {
               <div className="w-20 h-20 sm:w-24 sm:h-24 bg-[#F5F5F5] rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
                 <ShoppingCart className="w-10 h-10 sm:w-12 sm:h-12 text-[#a8bba3] opacity-40" />
               </div>
-              <h3 className="text-lg sm:text-xl font-normal text-[#1C1C1C] mb-2">No Products Available</h3>
-              <p className="text-sm sm:text-base text-[#5A5A5A] mb-4 sm:mb-6">No products found in this category.</p>
+              <h3 className="text-lg sm:text-xl font-normal text-[#1C1C1C] mb-2">
+                No Products Available
+              </h3>
+              <p className="text-sm sm:text-base text-[#5A5A5A] mb-4 sm:mb-6">
+                No products found in this category.
+              </p>
               <button
-                onClick={() => handleCategoryClick('all')}
+                onClick={() => handleCategoryClick("all")}
                 className="px-5 sm:px-6 py-2.5 sm:py-3 bg-[#a8bba3] text-white rounded-full text-sm font-medium hover:bg-[#93a991] transition-colors min-h-[44px]"
               >
                 View All Products
@@ -589,14 +687,16 @@ export default function OrdersPage() {
 
       <div
         className={`fixed top-0 right-0 h-full w-full sm:w-[90vw] md:w-[450px] bg-white border-l border-[#E8E4DA] z-50 transform transition-transform duration-300 ${
-          showSidebar ? 'translate-x-0' : 'translate-x-full'
+          showSidebar ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="h-full flex flex-col">
           <div className="p-4 sm:p-5 md:p-6 border-b border-[#E8E4DA] flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-3">
               <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-[#a8bba3]" />
-              <h3 className="text-lg sm:text-xl font-normal text-[#1C1C1C]">Order Summary</h3>
+              <h3 className="text-lg sm:text-xl font-normal text-[#1C1C1C]">
+                Order Summary
+              </h3>
             </div>
             <button
               onClick={() => setShowSidebar(false)}
@@ -619,7 +719,9 @@ export default function OrdersPage() {
                   className="relative flex gap-3 sm:gap-4 p-3 sm:p-4 bg-white border border-[#E8E4DA] rounded-lg sm:rounded-xl"
                 >
                   <button
-                    onClick={() => removeItem(item.product.id, item.variant.id, item.purity)}
+                    onClick={() =>
+                      removeItem(item.product.id, item.variant.id, item.purity)
+                    }
                     className="absolute top-2 right-2 text-[#A7A29A] hover:text-[#a8bba3] transition-colors z-10 min-h-[44px] min-w-[44px] flex items-center justify-center"
                   >
                     <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -631,22 +733,40 @@ export default function OrdersPage() {
                     loading="lazy"
                   />
                   <div className="flex-1 pr-8">
-                    <h4 className="font-normal text-[#1A1A1A] text-sm sm:text-base mb-1">{item.product.name}</h4>
+                    <h4 className="font-normal text-[#1A1A1A] text-sm sm:text-base mb-1">
+                      {item.product.name}
+                    </h4>
                     <p className="text-xs text-[#6F6F6F] mb-1">
                       Weight: {item.variant.weight}
-                      {item.purity && <span className="ml-1 text-[#86837D]">({item.purity}% Purity)</span>}
+                      {item.purity && (
+                        <span className="ml-1 text-[#86837D]">
+                          ({item.purity}% Purity)
+                        </span>
+                      )}
                     </p>
                     {item.variant.dimensions && (
-                      <p className="text-xs text-[#6F6F6F] mb-1">{item.variant.dimensions}</p>
+                      <p className="text-xs text-[#6F6F6F] mb-1">
+                        {item.variant.dimensions}
+                      </p>
                     )}
-                    {(item.variant.width || item.variant.height || item.variant.diameter) && (
+                    {(item.variant.width ||
+                      item.variant.height ||
+                      item.variant.diameter) && (
                       <div className="text-xs text-[#6F6F6F] space-y-0.5">
-                        {item.variant.width && <p>Width: {item.variant.width}</p>}
-                        {item.variant.height && <p>Height: {item.variant.height}</p>}
-                        {item.variant.diameter && <p>Diameter: {item.variant.diameter}</p>}
+                        {item.variant.width && (
+                          <p>Width: {item.variant.width}</p>
+                        )}
+                        {item.variant.height && (
+                          <p>Height: {item.variant.height}</p>
+                        )}
+                        {item.variant.diameter && (
+                          <p>Diameter: {item.variant.diameter}</p>
+                        )}
                       </div>
                     )}
-                    <p className="text-xs text-[#86837D] mt-1">Qty: {item.quantity}</p>
+                    <p className="text-xs text-[#86837D] mt-1">
+                      Qty: {item.quantity}
+                    </p>
                   </div>
                 </div>
               ))
@@ -657,7 +777,9 @@ export default function OrdersPage() {
             <div className="p-4 sm:p-5 md:p-6 border-t border-[#E8E4DA] bg-white">
               <div className="mb-4 space-y-2">
                 <div className="text-center">
-                  <p className="text-xs sm:text-sm text-[#86837D] mb-1">Total Products</p>
+                  <p className="text-xs sm:text-sm text-[#86837D] mb-1">
+                    Total Products
+                  </p>
                   <p className="text-lg sm:text-xl font-normal text-[#1C1C1C]">
                     {uniqueProductCount}
                   </p>
@@ -684,7 +806,9 @@ export default function OrdersPage() {
               <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-light text-[#1C1C1C] mb-5 sm:mb-6 pr-8">Add business details</h3>
+            <h3 className="text-xl sm:text-2xl md:text-3xl font-light text-[#1C1C1C] mb-5 sm:mb-6 pr-8">
+              Add business details
+            </h3>
 
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               <div>
@@ -695,7 +819,9 @@ export default function OrdersPage() {
                   type="text"
                   required
                   value={formData.businessName}
-                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, businessName: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="Your business name"
                 />
@@ -709,7 +835,9 @@ export default function OrdersPage() {
                   type="text"
                   required
                   value={formData.yourName}
-                  onChange={(e) => setFormData({ ...formData, yourName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, yourName: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="Your full name"
                 />
@@ -723,7 +851,9 @@ export default function OrdersPage() {
                   type="text"
                   required
                   value={formData.designation}
-                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, designation: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text sm sm:text-base"
                   placeholder="e.g. Owner, Manager, Buyer"
                 />
@@ -737,7 +867,9 @@ export default function OrdersPage() {
                   type="tel"
                   required
                   value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="+91 98765 43210"
                 />
@@ -751,7 +883,9 @@ export default function OrdersPage() {
                   type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="your@email.com"
                 />
@@ -764,7 +898,9 @@ export default function OrdersPage() {
                 <input
                   type="text"
                   value={formData.gstin}
-                  onChange={(e) => setFormData({ ...formData, gstin: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, gstin: e.target.value })
+                  }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
                   placeholder="GST Number"
                 />
@@ -772,7 +908,7 @@ export default function OrdersPage() {
 
               <button
                 type="submit"
-            className="w-full px-5 sm:px-6 py-3 bg-[#a8bba3] text-white rounded-full text-sm font-medium transition-colors duration-300 hover:bg-[#93a991] mt-4 sm:mt-6 min-h-[44px]"
+                className="w-full px-5 sm:px-6 py-3 bg-[#a8bba3] text-white rounded-full text-sm font-medium transition-colors duration-300 hover:bg-[#93a991] mt-4 sm:mt-6 min-h-[44px]"
               >
                 Submit Order
               </button>
@@ -822,8 +958,12 @@ export default function OrdersPage() {
           <div className="bg-white rounded-xl sm:rounded-2xl max-w-2xl w-full relative animate-scale-in border border-[#E8E4DA] shadow-lg max-h-[90vh] overflow-hidden flex flex-col">
             <div className="p-4 sm:p-5 md:p-6 border-b border-[#E8E4DA] flex items-center justify-between">
               <div>
-                <h3 className="text-xl sm:text-2xl font-normal text-[#1C1C1C]">{selectedProduct.name}</h3>
-                <p className="text-sm text-[#6F6F6F] mt-1">Select variants and quantities</p>
+                <h3 className="text-xl sm:text-2xl font-normal text-[#1C1C1C]">
+                  {selectedProduct.name}
+                </h3>
+                <p className="text-sm text-[#6F6F6F] mt-1">
+                  Select variants and quantities
+                </p>
               </div>
               <button
                 onClick={() => {
@@ -847,8 +987,9 @@ export default function OrdersPage() {
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = '/logos/Main logo.png';
-                      target.className = 'w-full h-full object-contain opacity-30';
+                      target.src = "/logos/Main logo.png";
+                      target.className =
+                        "w-full h-full object-contain opacity-30";
                     }}
                   />
                 </div>
@@ -856,60 +997,92 @@ export default function OrdersPage() {
 
               {/* Variants List */}
               <div className="space-y-4">
-                {expandVariantsByPurity(selectedProduct.variants || []).map((expanded) => {
-                  const variant = expanded.baseVariant;
-                  return (
-                    <div key={expanded.key} className="border border-[#E8E4DA] rounded-lg p-4 bg-white">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="font-semibold text-[#1C1C1C] text-sm sm:text-base">
-                            {variant.weight}
-                            {expanded.purity && (
-                              <span className="ml-2 text-[#86837D] font-normal">({expanded.purity}% Purity)</span>
+                {expandVariantsByPurity(selectedProduct.variants || []).map(
+                  (expanded) => {
+                    const variant = expanded.baseVariant;
+                    return (
+                      <div
+                        key={expanded.key}
+                        className="border border-[#E8E4DA] rounded-lg p-4 bg-white"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="font-semibold text-[#1C1C1C] text-sm sm:text-base">
+                              {variant.weight}
+                              {expanded.purity && (
+                                <span className="ml-2 text-[#86837D] font-normal">
+                                  ({expanded.purity}% Purity)
+                                </span>
+                              )}
+                            </p>
+                            {/* Dimensions */}
+                            {(variant.width ||
+                              variant.height ||
+                              variant.diameter) && (
+                              <div className="mt-1 text-xs sm:text-sm text-[#6F6F6F] space-y-0.5">
+                                {variant.width && (
+                                  <p>
+                                    Width:{" "}
+                                    <span className="font-medium">
+                                      {variant.width}
+                                    </span>
+                                  </p>
+                                )}
+                                {variant.height && (
+                                  <p>
+                                    Height:{" "}
+                                    <span className="font-medium">
+                                      {variant.height}
+                                    </span>
+                                  </p>
+                                )}
+                                {variant.diameter && (
+                                  <p>
+                                    Diameter:{" "}
+                                    <span className="font-medium">
+                                      {variant.diameter}
+                                    </span>
+                                  </p>
+                                )}
+                              </div>
                             )}
-                          </p>
-                          {/* Dimensions */}
-                          {(variant.width || variant.height || variant.diameter) && (
-                            <div className="mt-1 text-xs sm:text-sm text-[#6F6F6F] space-y-0.5">
-                              {variant.width && (
-                                <p>Width: <span className="font-medium">{variant.width}</span></p>
-                              )}
-                              {variant.height && (
-                                <p>Height: <span className="font-medium">{variant.height}</span></p>
-                              )}
-                              {variant.diameter && (
-                                <p>Diameter: <span className="font-medium">{variant.diameter}</span></p>
-                              )}
-                            </div>
-                          )}
-                          {variant.dimensions && (
-                            <p className="text-xs text-[#6F6F6F] mt-1">{variant.dimensions}</p>
-                          )}
-                          {variant.description && (
-                            <p className="text-xs sm:text-sm text-[#6F6F6F] mt-1">{variant.description}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 ml-4">
-                          <button
-                            onClick={() => updateVariantQuantity(expanded.key, -1)}
-                            className="w-8 h-8 rounded-full border-2 border-[#a8bba3] text-[#a8bba3] flex items-center justify-center hover:bg-[#a8bba3] hover:text-white transition-colors min-h-[44px] min-w-[44px]"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <span className="w-12 text-center font-semibold text-[#1C1C1C] text-sm sm:text-base">
-                            {variantQuantities[expanded.key] || 0}
-                          </span>
-                          <button
-                            onClick={() => updateVariantQuantity(expanded.key, 1)}
-                            className="w-8 h-8 rounded-full border-2 border-[#a8bba3] text-[#a8bba3] flex items-center justify-center hover:bg-[#a8bba3] hover:text-white transition-colors min-h-[44px] min-w-[44px]"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
+                            {variant.dimensions && (
+                              <p className="text-xs text-[#6F6F6F] mt-1">
+                                {variant.dimensions}
+                              </p>
+                            )}
+                            {variant.description && (
+                              <p className="text-xs sm:text-sm text-[#6F6F6F] mt-1">
+                                {variant.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 ml-4">
+                            <button
+                              onClick={() =>
+                                updateVariantQuantity(expanded.key, -1)
+                              }
+                              className="w-8 h-8 rounded-full border-2 border-[#a8bba3] text-[#a8bba3] flex items-center justify-center hover:bg-[#a8bba3] hover:text-white transition-colors min-h-[44px] min-w-[44px]"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <span className="w-12 text-center font-semibold text-[#1C1C1C] text-sm sm:text-base">
+                              {variantQuantities[expanded.key] || 0}
+                            </span>
+                            <button
+                              onClick={() =>
+                                updateVariantQuantity(expanded.key, 1)
+                              }
+                              className="w-8 h-8 rounded-full border-2 border-[#a8bba3] text-[#a8bba3] flex items-center justify-center hover:bg-[#a8bba3] hover:text-white transition-colors min-h-[44px] min-w-[44px]"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
               </div>
             </div>
 
@@ -937,4 +1110,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-

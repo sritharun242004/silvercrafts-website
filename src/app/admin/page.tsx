@@ -92,6 +92,7 @@ interface QuoteRequest {
   createdAt: string;
   businessName?: string;
   gstin?: string;
+  userId?: string | null;
 }
 
 interface Order {
@@ -206,6 +207,18 @@ export default function AdminDashboard() {
     }
   }, [session]);
 
+  // Helper function to map database status to frontend status
+  const mapDbStatusToFrontend = (dbStatus: string): Order["status"] => {
+    const statusMap: { [key: string]: Order["status"] } = {
+      'PENDING': 'pending',
+      'PROCESSING': 'processing',
+      'SHIPPED': 'completed', // Map SHIPPED to completed for frontend
+      'DELIVERED': 'delivered',
+      'CANCELLED': 'pending', // Map cancelled to pending
+    };
+    return statusMap[dbStatus?.toUpperCase()] || 'pending';
+  };
+
   const fetchUsers = async () => {
     try {
       const response = await fetch("/api/users");
@@ -317,6 +330,7 @@ export default function AdminDashboard() {
             createdAt: new Date(q.createdAt).toISOString(),
             businessName: q.businessName || undefined,
             gstin: q.gstin || undefined,
+            userId: q.userId || null,
           })
         );
         setQuotes(transformedQuotes);
@@ -360,7 +374,7 @@ export default function AdminDashboard() {
               purity: item.variantDetails?.purity || undefined,
             })),
             totalAmount,
-            status: o.status?.toLowerCase() || "pending",
+            status: mapDbStatusToFrontend(o.status) || "pending",
             paymentStatus: "pending" as const, // Default payment status
             createdAt: new Date(o.createdAt).toISOString(),
             shippingAddress: "", // Not stored in current schema
@@ -566,9 +580,9 @@ export default function AdminDashboard() {
 
         setAllProducts([...allProducts, savedProduct]);
 
-        // Update displayed products based on current filter
-        if (
-          selectedCategory === "All Categories" ||
+    // Update displayed products based on current filter
+    if (
+      selectedCategory === "All Categories" ||
           selectedCategory === savedProduct.category
         ) {
           setProducts([...products, savedProduct]);
@@ -634,20 +648,20 @@ export default function AdminDashboard() {
             })) || [],
         };
 
-        // Update in all products
-        const updatedAllProducts = allProducts.map((p) =>
+    // Update in all products
+    const updatedAllProducts = allProducts.map((p) =>
           p.id === savedProduct.id ? savedProduct : p
-        );
-        setAllProducts(updatedAllProducts);
+    );
+    setAllProducts(updatedAllProducts);
 
-        // Update in displayed products
-        const updatedProducts = products.map((p) =>
+    // Update in displayed products
+    const updatedProducts = products.map((p) =>
           p.id === savedProduct.id ? savedProduct : p
-        );
-        setProducts(updatedProducts);
+    );
+    setProducts(updatedProducts);
 
-        // Reset editing state
-        setEditingProduct(null);
+    // Reset editing state
+    setEditingProduct(null);
 
         toast.success("Product updated successfully!");
       } else {
@@ -750,21 +764,39 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleOrderStatusUpdate = (
+  const handleOrderStatusUpdate = async (
     orderId: string,
     newStatus: Order["status"]
   ) => {
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (response.ok) {
     const updatedOrders = orders.map((o) =>
       o.id === orderId ? { ...o, status: newStatus } : o
     );
     setOrders(updatedOrders);
-
+    
     // Update selectedOrder if it's the one being updated
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder({ ...selectedOrder, status: newStatus });
     }
-
+    
     toast.success(`Order status updated to ${newStatus}!`);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || 'Failed to update order status');
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Failed to update order status');
+    }
   };
 
   const handlePaymentStatusUpdate = (
@@ -775,12 +807,12 @@ export default function AdminDashboard() {
       o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
     );
     setOrders(updatedOrders);
-
+    
     // Update selectedOrder if it's the one being updated
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder({ ...selectedOrder, paymentStatus: newPaymentStatus });
     }
-
+    
     toast.success(`Payment status updated to ${newPaymentStatus}!`);
   };
 
@@ -809,7 +841,7 @@ export default function AdminDashboard() {
 
       <main className="container mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-serif font-bold text-gray-900 mb-2">
+          <h1 className="text-4xl font-heading font-bold text-gray-900 mb-2">
             Dashboard
           </h1>
           <p className="text-gray-600">Welcome back, {session?.user?.name}</p>
@@ -1167,17 +1199,22 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge
-                          variant={
-                            quote.status === "pending"
-                              ? "default"
-                              : quote.status === "sent"
-                                ? "secondary"
-                                : "destructive"
-                          }
-                        >
-                          {quote.status}
-                        </Badge>
+                        {!quote.userId && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            New User
+                          </Badge>
+                        )}
+                      <Badge
+                        variant={
+                          quote.status === "pending"
+                            ? "default"
+                            : quote.status === "sent"
+                              ? "secondary"
+                              : "destructive"
+                        }
+                      >
+                        {quote.status}
+                      </Badge>
                         <button
                           onClick={(e) => handleDeleteQuote(quote.id, e)}
                           className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
@@ -1210,53 +1247,53 @@ export default function AdminDashboard() {
                     <p className="text-gray-500 text-lg">There are no orders</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {orders.map((order) => (
-                      <div
-                        key={order.id}
-                        onClick={() => handleOrderClick(order)}
-                        className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center font-semibold">
-                            {order.customerName.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-lg">
-                              {order.customerName}
-                            </h3>
-                            <p className="text-sm text-gray-500">
+                <div className="space-y-2">
+                  {orders.map((order) => (
+                    <div
+                      key={order.id}
+                      onClick={() => handleOrderClick(order)}
+                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center font-semibold">
+                          {order.customerName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg">
+                            {order.customerName}
+                          </h3>
+                          <p className="text-sm text-gray-500">
                               {order.orderNumber ||
                                 order.id.substring(0, 6).toUpperCase()}{" "}
                               • {new Date(order.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
+                          </p>
                         </div>
+                      </div>
                         <div className="flex items-center gap-3">
-                          <Badge
-                            variant={
-                              order.status === "delivered"
-                                ? "secondary"
-                                : order.status === "completed"
-                                  ? "default"
-                                  : order.status === "processing"
-                                    ? "default"
-                                    : "outline"
-                            }
-                          >
-                            {order.status}
-                          </Badge>
-                          <Badge
-                            variant={
-                              order.paymentStatus === "paid"
+                        <Badge
+                          variant={
+                            order.status === "delivered"
+                              ? "secondary"
+                              : order.status === "completed"
                                 ? "default"
-                                : order.paymentStatus === "refunded"
-                                  ? "destructive"
+                                : order.status === "processing"
+                                  ? "default"
                                   : "outline"
-                            }
-                          >
-                            {order.paymentStatus}
-                          </Badge>
+                          }
+                        >
+                          {order.status}
+                        </Badge>
+                        <Badge
+                          variant={
+                            order.paymentStatus === "paid"
+                              ? "default"
+                              : order.paymentStatus === "refunded"
+                                ? "destructive"
+                                : "outline"
+                          }
+                        >
+                          {order.paymentStatus}
+                        </Badge>
                           <button
                             onClick={(e) => handleDeleteOrder(order.id, e)}
                             className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
@@ -1264,10 +1301,10 @@ export default function AdminDashboard() {
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
-                        </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
+                </div>
                 )}
               </CardContent>
             </Card>

@@ -51,4 +51,3 @@ When deploying to Vercel:
 - `NEXTAUTH_URL` should match your deployment URL in production (e.g., `https://your-app.vercel.app`)
 - `DATABASE_URL` should use connection pooling for production (Vercel Postgres provides this automatically)
 - Never commit `.env.local` or `.env` files to Git (they're already in `.gitignore`)
-

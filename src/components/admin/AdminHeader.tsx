@@ -11,15 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import {
-  Bell,
-  Settings,
-  LogOut,
-  User,
-  Shield,
-  Home,
-  ChevronDown,
-} from "lucide-react";
+import { LogOut, Shield, Home, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 const AdminHeader = () => {
@@ -45,7 +37,7 @@ const AdminHeader = () => {
         <div className="flex items-center gap-4">
           <Link
             href="/"
-            className="font-serif text-xl text-primary font-semibold tracking-wide hover:opacity-80 transition-opacity"
+            className="font-heading text-xl text-primary font-semibold tracking-wide hover:opacity-80 transition-opacity"
           >
             SilverCrafts
           </Link>
@@ -67,22 +59,6 @@ const AdminHeader = () => {
 
         {/* Right section - Actions & Profile */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5 text-gray-600" />
-            <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-              3
-            </span>
-          </Button>
-
-          {/* Settings */}
-          <Button variant="ghost" size="icon">
-            <Settings className="h-5 w-5 text-gray-600" />
-          </Button>
-
-          {/* Divider */}
-          <div className="h-6 w-px bg-gray-300" />
-
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -118,15 +94,6 @@ const AdminHeader = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleSignOut}
                 className="text-red-600"
@@ -143,4 +110,3 @@ const AdminHeader = () => {
 };
 
 export default AdminHeader;
-

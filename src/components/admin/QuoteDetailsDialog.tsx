@@ -38,6 +38,7 @@ interface QuoteRequest {
   createdAt: string;
   businessName?: string;
   gstin?: string;
+  userId?: string | null;
 }
 
 interface QuoteDetailsDialogProps {
@@ -140,9 +141,16 @@ const QuoteDetailsDialog = ({
           <div className="space-y-6">
             {/* Customer Information */}
             <div className="border rounded-lg p-4 bg-gray-50">
-              <h3 className="font-semibold text-lg mb-3">
-                Customer Information
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-lg">
+                  Customer Information
+                </h3>
+                {!quote.userId && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    New User
+                  </Badge>
+                )}
+              </div>
               <div className="space-y-2 text-sm">
                 <div className="flex gap-2">
                   <span className="font-medium w-24">Name:</span>
