@@ -16,7 +16,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { status } = body;
+    const { status, paymentStatus } = body;
 
     // Map frontend status to database enum values
     const statusMap: { [key: string]: string } = {
@@ -26,8 +26,18 @@ export async function PUT(
       'delivered': 'DELIVERED',
     };
 
+    // Map frontend payment status to database enum values
+    const paymentStatusMap: { [key: string]: string } = {
+      'pending': 'PENDING',
+      'paid': 'PAID',
+      'refunded': 'REFUNDED',
+    };
+
     const statusLower = status ? status.toLowerCase() : null;
     const statusUpper = statusLower ? statusMap[statusLower] || status.toUpperCase() : null;
+    
+    const paymentStatusLower = paymentStatus ? paymentStatus.toLowerCase() : null;
+    const paymentStatusUpper = paymentStatusLower ? paymentStatusMap[paymentStatusLower] || paymentStatus.toUpperCase() : null;
     
     // Validate status
     const validStatuses = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
@@ -38,9 +48,21 @@ export async function PUT(
       );
     }
 
+    // Validate payment status
+    const validPaymentStatuses = ['PENDING', 'PAID', 'REFUNDED'];
+    if (paymentStatusUpper && !validPaymentStatuses.includes(paymentStatusUpper)) {
+      return NextResponse.json(
+        { error: 'Invalid payment status' },
+        { status: 400 }
+      );
+    }
+
     const updateData: any = {};
     if (statusUpper) {
       updateData.status = statusUpper;
+    }
+    if (paymentStatusUpper) {
+      updateData.paymentStatus = paymentStatusUpper;
     }
 
     const updatedOrder = await prisma.order.update({

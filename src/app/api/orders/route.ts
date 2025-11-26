@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
         gstin: gstin || null,
         items: items,
         status: 'PENDING',
+        paymentStatus: 'PENDING',
       },
     });
 

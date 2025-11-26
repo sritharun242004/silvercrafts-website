@@ -219,6 +219,16 @@ export default function AdminDashboard() {
     return statusMap[dbStatus?.toUpperCase()] || 'pending';
   };
 
+  // Helper function to map database payment status to frontend payment status
+  const mapDbPaymentStatusToFrontend = (dbPaymentStatus: string): Order["paymentStatus"] => {
+    const paymentStatusMap: { [key: string]: Order["paymentStatus"] } = {
+      'PENDING': 'pending',
+      'PAID': 'paid',
+      'REFUNDED': 'refunded',
+    };
+    return paymentStatusMap[dbPaymentStatus?.toUpperCase()] || 'pending';
+  };
+
   const fetchUsers = async () => {
     try {
       const response = await fetch("/api/users");
@@ -375,7 +385,7 @@ export default function AdminDashboard() {
             })),
             totalAmount,
             status: mapDbStatusToFrontend(o.status) || "pending",
-            paymentStatus: "pending" as const, // Default payment status
+            paymentStatus: mapDbPaymentStatusToFrontend(o.paymentStatus) || "pending",
             createdAt: new Date(o.createdAt).toISOString(),
             shippingAddress: "", // Not stored in current schema
             businessName: o.businessName || undefined,
@@ -799,21 +809,39 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePaymentStatusUpdate = (
+  const handlePaymentStatusUpdate = async (
     orderId: string,
     newPaymentStatus: Order["paymentStatus"]
   ) => {
-    const updatedOrders = orders.map((o) =>
-      o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
-    );
-    setOrders(updatedOrders);
-    
-    // Update selectedOrder if it's the one being updated
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder({ ...selectedOrder, paymentStatus: newPaymentStatus });
+    try {
+      const response = await fetch(`/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ paymentStatus: newPaymentStatus }),
+      });
+
+      if (response.ok) {
+        const updatedOrders = orders.map((o) =>
+          o.id === orderId ? { ...o, paymentStatus: newPaymentStatus } : o
+        );
+        setOrders(updatedOrders);
+
+        // Update selectedOrder if it's the one being updated
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, paymentStatus: newPaymentStatus });
+        }
+
+        toast.success(`Payment status updated to ${newPaymentStatus}!`);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        toast.error(errorData.error || 'Failed to update payment status');
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      toast.error('Failed to update payment status');
     }
-    
-    toast.success(`Payment status updated to ${newPaymentStatus}!`);
   };
 
   if (status === "loading" || loading) {
