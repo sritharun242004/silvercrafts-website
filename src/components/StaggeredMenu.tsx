@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useRef, useState, useEffect } from 'react';
 import { gsap } from 'gsap';
 import { X, Menu } from 'lucide-react';
 
@@ -400,7 +400,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
         )}
 
         <header
-          className="staggered-menu-header fixed top-0 left-0 right-0 w-full flex flex-row items-center justify-between px-4 py-8 sm:px-6 sm:py-10 md:px-12 md:py-12 lg:px-16 lg:py-14 bg-transparent z-50 pointer-events-auto"
+          className="staggered-menu-header absolute top-0 left-0 right-0 w-full flex flex-row items-center justify-between px-4 py-8 sm:px-6 sm:py-10 md:px-12 md:py-12 lg:px-16 lg:py-14 bg-transparent z-50 pointer-events-auto"
           aria-label="Main navigation header"
           style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}
         >
@@ -681,7 +681,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
       <style>{`
 .sm-scope .staggered-menu-wrapper { position: relative; width: 100%; height: 100%; z-index: 40; pointer-events: none; }
 .sm-scope .staggered-menu-wrapper[data-open] { pointer-events: auto; }
-.sm-scope .staggered-menu-header { position: fixed; top: 0; left: 0; right: 0; width: 100%; display: flex; align-items: center; justify-content: space-between; background: transparent; z-index: 50; pointer-events: auto; }
+.sm-scope .staggered-menu-header { position: absolute; top: 0; left: 0; right: 0; width: 100%; display: flex; align-items: center; justify-content: space-between; background: transparent; z-index: 50; pointer-events: auto; }
 .sm-scope .staggered-menu-header > * { pointer-events: auto; }
 .sm-scope .sm-logo { display: flex; align-items: center; user-select: none; }
 .sm-scope .sm-logo-img { display: block; height: 120px; width: auto; object-fit: contain; }

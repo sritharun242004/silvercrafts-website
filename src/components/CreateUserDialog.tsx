@@ -87,9 +87,40 @@ export function CreateUserDialog() {
     setEmail("");
   };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(temporaryPassword);
-    toast.success("Password copied to clipboard!");
+  const copyToClipboard = async () => {
+    try {
+      // Check if clipboard API is available
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(temporaryPassword);
+        toast.success("Password copied to clipboard!");
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = temporaryPassword;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            toast.success("Password copied to clipboard!");
+          } else {
+            toast.error("Failed to copy to clipboard");
+          }
+        } catch (err) {
+          toast.error("Failed to copy to clipboard");
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+    } catch (error) {
+      console.error("Copy to clipboard error:", error);
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   return (

@@ -119,9 +119,40 @@ export default function CreateUserDialog({
     }
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard!");
+  const copyToClipboard = async (text: string) => {
+    try {
+      // Check if clipboard API is available
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        toast.success("Copied to clipboard!");
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          const successful = document.execCommand("copy");
+          if (successful) {
+            toast.success("Copied to clipboard!");
+          } else {
+            toast.error("Failed to copy to clipboard");
+          }
+        } catch (err) {
+          toast.error("Failed to copy to clipboard");
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+    } catch (error) {
+      console.error("Copy to clipboard error:", error);
+      toast.error("Failed to copy to clipboard");
+    }
   };
 
   const isResetMode = mode === 'reset';

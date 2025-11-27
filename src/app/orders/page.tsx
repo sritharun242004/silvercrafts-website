@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
+  ArrowUp,
 } from "lucide-react";
 import { categories } from "@/data/products";
 import { QUOTE_STEPS, CAROUSEL_CONFIG } from "@/config/constants";
@@ -67,11 +68,13 @@ export default function OrdersPage() {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showVariantDialog, setShowVariantDialog] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [variantQuantities, setVariantQuantities] = useState<{
     [key: string]: number;
   }>({});
+  const hasFetchedRef = useRef(false);
   const [formData, setFormData] = useState({
     businessName: "",
     yourName: "",
@@ -100,11 +103,29 @@ export default function OrdersPage() {
   }, [session, router]);
 
   useEffect(() => {
-    // Only fetch products if user is authenticated
-    if (session?.user) {
+    // Only fetch products once when user is authenticated
+    if (session?.user && !hasFetchedRef.current && allProducts.length === 0) {
+      hasFetchedRef.current = true;
       fetchProducts();
     }
-  }, [session]);
+  }, [session?.user?.id]); // Only depend on user ID
+
+  // Scroll to top button visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollButton(window.scrollY > 300);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   // Filter products by category and purity
   useEffect(() => {
@@ -133,10 +154,12 @@ export default function OrdersPage() {
     setFilteredProducts(filtered);
   }, [allProducts, selectedCategory, selectedPurity]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/products");
+      const response = await fetch("/api/products", {
+        cache: "no-store", // Prevent caching issues
+      });
       if (response.ok) {
         const data = await response.json();
         const products: Product[] = (data.products || []).map((p: any) => ({
@@ -169,7 +192,7 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // No dependencies - function is stable
 
   // Helper function to normalize category names
   const normalizeCategory = (categoryName: string): string => {
@@ -624,8 +647,9 @@ export default function OrdersPage() {
         className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white"
       >
         <div className="max-w-7xl mx-auto">
-          <div className="relative mb-8 sm:mb-10 md:mb-12 px-4">
-            <div className="text-center">
+          <div className="mb-8 sm:mb-10 md:mb-12 px-4">
+            {/* Title Section */}
+            <div className="text-center mb-4 sm:mb-6">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-normal text-[#1C1C1C] mb-2">
                 {selectedCategory === "all"
                   ? "All Products"
@@ -639,34 +663,44 @@ export default function OrdersPage() {
               </p>
             </div>
 
-            {/* Purity Label and Toggle */}
-            <div className="absolute right-4 top-0 flex flex-col items-center gap-1">
-              <span className="text-xs sm:text-sm text-[#6F6F6F] font-medium">
-                Purity
-              </span>
-              <div className="flex items-center gap-0 bg-white border border-[#E8E4DA] rounded-full px-1 min-h-[44px]">
-                <button
-                  onClick={() => setSelectedPurity("80")}
-                  className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
-                    selectedPurity === "80"
-                      ? "bg-[#a8bba3] text-white"
-                      : "text-[#6F6F6F] hover:bg-gray-100"
-                  }`}
-                >
-                  80%
-                </button>
-                <button
-                  onClick={() => setSelectedPurity("92.5")}
-                  className={`px-4 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
-                    selectedPurity === "92.5"
-                      ? "bg-[#a8bba3] text-white"
-                      : "text-[#6F6F6F] hover:bg-gray-100"
-                  }`}
-                >
-                  92.5%
-                </button>
+            {/* Controls Section - Left: Purity, Right: (empty for now, can add controls later) */}
+            {filteredProducts.length > 0 && (
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                {/* Left Side: Purity Label and Toggle */}
+                <div className="flex flex-col items-start gap-1">
+                  <span className="text-xs sm:text-sm text-[#6F6F6F] font-medium">
+                    Purity
+                  </span>
+                  <div className="flex items-center gap-0 bg-white border border-[#E8E4DA] rounded-full px-1 min-h-[44px]">
+                    <button
+                      onClick={() => setSelectedPurity("80")}
+                      className={`px-3 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
+                        selectedPurity === "80"
+                          ? "bg-[#a8bba3] text-white"
+                          : "text-[#6F6F6F] hover:bg-gray-100"
+                      }`}
+                    >
+                      80%
+                    </button>
+                    <button
+                      onClick={() => setSelectedPurity("92.5")}
+                      className={`px-3 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
+                        selectedPurity === "92.5"
+                          ? "bg-[#a8bba3] text-white"
+                          : "text-[#6F6F6F] hover:bg-gray-100"
+                      }`}
+                    >
+                      92.5%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Right Side: Reserved for future controls */}
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  {/* Add any additional controls here in the future */}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {loading ? (
@@ -1266,6 +1300,17 @@ export default function OrdersPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollButton && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 bg-[#a8bba3] text-white p-3 rounded-full shadow-lg hover:bg-[#93a991] transition-all duration-300 hover:scale-110 flex items-center justify-center min-h-[44px] min-w-[44px]"
+          aria-label="Scroll to top"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
       )}
     </div>
   );

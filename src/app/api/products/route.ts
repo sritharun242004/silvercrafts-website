@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
+// Enable revalidation for this route
+export const revalidate = 60; // Revalidate every 60 seconds
+
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
@@ -63,7 +66,14 @@ export async function GET() {
       })),
     }));
 
-    return NextResponse.json({ products: transformedProducts });
+    return NextResponse.json(
+      { products: transformedProducts },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error: any) {
     console.error("Error fetching products:", error);
     console.error("Error details:", {

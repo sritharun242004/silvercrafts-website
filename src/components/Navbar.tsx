@@ -166,7 +166,19 @@ export default function Navbar({ onNavigate, currentPage }: NavbarProps) {
   const handleLoginClick = async () => {
     if (session) {
       // User is logged in, sign them out
-      await signOut({ callbackUrl: "/" });
+      try {
+        // Sign out without redirect first
+        await signOut({ 
+          callbackUrl: "/",
+          redirect: false 
+        });
+        // Then manually redirect to home page - more reliable
+        window.location.href = "/";
+      } catch (error) {
+        console.error("Sign out error:", error);
+        // Force redirect to home page on any error
+        window.location.href = "/";
+      }
     } else {
       // User is not logged in, redirect to login
       router.push("/auth");

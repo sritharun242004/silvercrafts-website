@@ -27,7 +27,19 @@ const NewHeroSection = () => {
   }, []);
 
   const handleSignOut = async () => {
-    await signOut({ callbackUrl: "/" });
+    try {
+      // Sign out without redirect first
+      await signOut({ 
+        callbackUrl: "/",
+        redirect: false 
+      });
+      // Then manually redirect to home page - more reliable
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Sign out error:", error);
+      // Force redirect to home page on any error
+      window.location.href = "/";
+    }
   };
 
   return (

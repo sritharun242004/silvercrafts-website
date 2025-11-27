@@ -8,13 +8,12 @@ import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
 function AuthPageContent() {
@@ -68,16 +67,27 @@ function AuthPageContent() {
     }
   };
 
+  const handleBack = () => {
+    router.push("/");
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Back Button */}
+      <button
+        onClick={handleBack}
+        className="absolute top-4 left-4 sm:top-6 sm:left-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors duration-200 z-10"
+        aria-label="Go back to home"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span className="text-sm font-medium">Back to Home</span>
+      </button>
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
-            Sign in to SilverCrafts
+            Sign in to place order
           </CardTitle>
-          <CardDescription className="text-center">
-            Enter your email and password to access your account
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -120,7 +130,7 @@ function AuthPageContent() {
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            Need access? Contact your administrator.
+            Need access? Contact administrator.
           </div>
         </CardContent>
       </Card>
