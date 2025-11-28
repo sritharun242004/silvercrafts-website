@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -10,7 +10,6 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  ArrowUp,
 } from "lucide-react";
 import { categories, products, Product } from "@/data/products";
 import BackButton from "@/components/BackButton";
@@ -32,12 +31,10 @@ export default function QuotationPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPurity, setSelectedPurity] = useState<string>("80");
   const categoryCarouselRef = useRef<HTMLDivElement>(null);
-  const hasFetchedRef = useRef(false);
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
   const [formData, setFormData] = useState({
     businessName: "",
     yourName: "",
@@ -56,39 +53,13 @@ export default function QuotationPage() {
   };
 
   useEffect(() => {
-    // Show static products immediately for instant display
-    setAllProducts(products);
-    setLoading(false);
-    
-    // Then fetch from API in the background to get latest data (only once)
-    if (!hasFetchedRef.current) {
-      hasFetchedRef.current = true;
-      fetchProducts();
-    }
+    fetchProducts();
   }, []);
 
-  // Scroll to top button visibility
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollButton(window.scrollY > 300);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
-
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = async () => {
     try {
-      const response = await fetch("/api/products", {
-        next: { revalidate: 60 }, // Cache for 60 seconds
-      });
+      setLoading(true);
+      const response = await fetch("/api/products");
       if (response.ok) {
         const data = await response.json();
         const fetchedProducts: Product[] = (data.products || []).map(
@@ -110,24 +81,30 @@ export default function QuotationPage() {
             })),
           })
         );
-        // Only update if we got data
-        if (fetchedProducts.length > 0) {
-          setAllProducts(fetchedProducts);
-        }
+        setAllProducts(fetchedProducts);
+      } else {
+        console.error("Failed to fetch products");
+        // Fallback to static products if API fails
+        setAllProducts(products);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
-      // Keep static products as fallback
+      // Fallback to static products if API fails
+      setAllProducts(products);
+    } finally {
+      setLoading(false);
     }
-  }, []); // No dependencies - function is stable
+  };
 
   // Filter products by category only (no purity filtering for quotation page)
-  // Using useMemo for better performance
   useEffect(() => {
-    const filtered = selectedCategory === "all" 
-      ? allProducts 
-      : allProducts.filter((p) => p.category === selectedCategory);
-    
+    let filtered = allProducts;
+
+    // Filter by category only
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((p) => p.category === selectedCategory);
+    }
+
     setFilteredProducts(filtered);
   }, [allProducts, selectedCategory]);
 
@@ -337,7 +314,7 @@ export default function QuotationPage() {
 
           <div
             className="relative"
-            style={{ position: "relative", minHeight: "140px" }}
+            style={{ position: "relative", minHeight: "200px" }}
           >
             <button
               onClick={(e) => {
@@ -392,7 +369,7 @@ export default function QuotationPage() {
                       key={`${category.id}-${index}`}
                       type="button"
                       onClick={() => handleCategoryClick(category.id)}
-                      className={`group relative flex-shrink-0 w-28 h-28 sm:w-30 sm:h-30 md:w-32 md:h-32 rounded-lg sm:rounded-xl overflow-hidden border-2 ${
+                      className={`group relative flex-shrink-0 w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl overflow-hidden border-2 ${
                         isSelected
                           ? "border-[#a8bba3] bg-[#F3F7F1] shadow-lg"
                           : "border-[#E8E4DA] bg-white"
@@ -415,7 +392,7 @@ export default function QuotationPage() {
                               }
                             }}
                           />
-                          <div className="absolute inset-x-2 sm:inset-x-3 bottom-0.5 rounded-full bg-white/90 px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-medium text-[#1C1C1C] tracking-wide shadow-sm">
+                          <div className="absolute inset-x-2 sm:inset-x-3 bottom-1 sm:bottom-1.5 rounded-full bg-white/90 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-[#1C1C1C] tracking-wide shadow-sm">
                             {category.name}
                           </div>
                         </>
@@ -456,7 +433,7 @@ export default function QuotationPage() {
               </p>
             </div>
 
-            {/* Controls Section - Left: Purity, Right: Select/Deselect buttons */}
+            {/* Controls Section - Left: Purity, Right: Action buttons */}
             {filteredProducts.length > 0 && (
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 {/* Left Side: Purity Label and Toggle */}
@@ -486,14 +463,22 @@ export default function QuotationPage() {
                       92.5%
                     </button>
                   </div>
+                  {/* Note for 92.5% purity - positioned below without affecting toggle */}
+                  {selectedPurity === "92.5" && (
+                    <div className="mt-2 bg-[#F5EFE6] rounded-lg px-3 py-2 max-w-xs">
+                      <p className="text-xs sm:text-sm text-[#5A5A5A] leading-relaxed">
+                        <span className="font-medium">Note:</span> 80% purity items are available from ready stock. 92.5% purity is made to order and requires additional production time.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Right Side: Select/Deselect Buttons */}
+                {/* Right Side: Action Buttons */}
                 <div className="flex items-center gap-2 flex-wrap justify-end">
                   <button
                     onClick={selectAllFiltered}
                     disabled={allFilteredSelected}
-                    className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2 ${
+                    className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-sm font-medium transition-all duration-300 min-h-[44px] inline-flex items-center gap-2 ${
                       allFilteredSelected
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                         : "bg-[#a8bba3] text-white hover:bg-[#93a991] hover:shadow-lg"
@@ -501,12 +486,12 @@ export default function QuotationPage() {
                   >
                     {allFilteredSelected ? (
                       <>
-                        <span className="text-base sm:text-lg">✓</span>
+                        <span className="text-lg">✓</span>
                         All Selected
                       </>
                     ) : (
                       <>
-                        <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <Plus className="w-4 h-4" />
                         Select All
                       </>
                     )}
@@ -515,9 +500,9 @@ export default function QuotationPage() {
                   {anyFilteredSelected && (
                     <button
                       onClick={deselectAllFiltered}
-                      className="px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-[#a8bba3] text-[#a8bba3] rounded-full text-xs sm:text-sm font-medium transition-all duration-300 hover:bg-[#a8bba3] hover:text-white min-h-[44px] inline-flex items-center gap-1.5 sm:gap-2"
+                      className="px-5 sm:px-6 py-2.5 sm:py-3 border-2 border-[#a8bba3] text-[#a8bba3] rounded-full text-sm font-medium transition-all duration-300 hover:bg-[#a8bba3] hover:text-white min-h-[44px] inline-flex items-center gap-2"
                     >
-                      <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <X className="w-4 h-4" />
                       Deselect All
                     </button>
                   )}
@@ -537,50 +522,60 @@ export default function QuotationPage() {
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
-              {filteredProducts.map((product, index) => (
-                <div
-                  key={product.id}
-                  className="bg-white rounded-lg sm:rounded-xl overflow-hidden border-2 border-[#E8E4DA] hover:border-[#a8bba3] hover:shadow-xl transition-all duration-300 group"
-                >
-                  <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden bg-gradient-to-br from-[#FDFBF7] to-[#F5F5F5] flex items-center justify-center p-3 sm:p-4">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110 max-w-full"
-                      loading={index < 8 ? "eager" : "lazy"}
-                      fetchPriority={index < 4 ? "high" : "auto"}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/logos/Main logo.png";
-                        target.className =
-                          "w-full h-full object-contain opacity-30";
-                      }}
-                    />
+              {filteredProducts.map((product) => {
+                // Check if product is already in quote
+                const isInQuote = quoteItems.some((item) => item.product.id === product.id);
+                
+                return (
+                  <div
+                    key={product.id}
+                    className="bg-white rounded-lg sm:rounded-xl overflow-hidden border-2 border-[#E8E4DA] hover:border-[#a8bba3] hover:shadow-xl transition-all duration-300 group"
+                  >
+                    <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden bg-gradient-to-br from-[#FDFBF7] to-[#F5F5F5] flex items-center justify-center p-3 sm:p-4">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110 max-w-full"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/logos/Main logo.png";
+                          target.className =
+                            "w-full h-full object-contain opacity-30";
+                        }}
+                      />
+                    </div>
+                    <div className="p-4 sm:p-5">
+                      <h3 className="text-sm sm:text-base font-normal text-[#1C1C1C] mb-3 min-h-[40px] sm:min-h-[48px] text-center">
+                        {product.name}
+                      </h3>
+                      <div className="relative">
+                        <button
+                          onClick={() => addToQuote(product)}
+                          disabled={isInQuote}
+                          className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 min-h-[44px] ${
+                            isInQuote
+                              ? "bg-gray-200 text-gray-600 cursor-not-allowed"
+                              : "bg-[#a8bba3] text-white hover:bg-[#93a991] hover:shadow-lg"
+                          }`}
+                        >
+                          {isInQuote ? (
+                            <>
+                              <span className="text-base">✓</span>
+                              Added
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                              Add to Quote
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-4 sm:p-5">
-                    <h3 className="text-sm sm:text-base font-normal text-[#1C1C1C] mb-3 min-h-[40px] sm:min-h-[48px]">
-                      {product.name}
-                    </h3>
-                    {quoteItems.some((item) => item.product.id === product.id) ? (
-                      <button
-                        disabled
-                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-200 text-gray-500 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px]"
-                      >
-                        <span className="text-base sm:text-lg">✓</span>
-                        Added to Quote
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => addToQuote(product)}
-                        className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-[#a8bba3] text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-300 hover:bg-[#93a991] hover:shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
-                      >
-                        <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        Add to Quote
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12 sm:py-16 md:py-20 px-4">
@@ -760,8 +755,8 @@ export default function QuotationPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, designation: e.target.value })
                   }
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text-sm sm:text-base"
-                  placeholder="e.g. Owner, Manager"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text sm sm:text-base"
+                  placeholder="e.g. Owner, Manager, Buyer"
                 />
               </div>
 
@@ -799,7 +794,7 @@ export default function QuotationPage() {
 
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-[#1A1A1A] mb-1.5 sm:mb-2">
-                  GSTIN
+                  GSTIN (Optional)
                 </label>
                 <input
                   type="text"
@@ -868,17 +863,6 @@ export default function QuotationPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Scroll to Top Button */}
-      {showScrollButton && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 bg-[#a8bba3] text-white p-3 rounded-full shadow-lg hover:bg-[#93a991] transition-all duration-300 hover:scale-110 flex items-center justify-center min-h-[44px] min-w-[44px]"
-          aria-label="Scroll to top"
-        >
-          <ArrowUp className="w-5 h-5" />
-        </button>
       )}
     </div>
   );

@@ -12,10 +12,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  ArrowUp,
 } from "lucide-react";
 import { categories } from "@/data/products";
-import { QUOTE_STEPS, CAROUSEL_CONFIG } from "@/config/constants";
+import { ORDER_STEPS, CAROUSEL_CONFIG } from "@/config/constants";
 
 interface ProductVariant {
   id: string;
@@ -68,7 +67,6 @@ export default function OrdersPage() {
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [showVariantDialog, setShowVariantDialog] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [variantQuantities, setVariantQuantities] = useState<{
@@ -110,22 +108,6 @@ export default function OrdersPage() {
     }
   }, [session?.user?.id]); // Only depend on user ID
 
-  // Scroll to top button visibility
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollButton(window.scrollY > 300);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
 
   // Filter products by category and purity
   useEffect(() => {
@@ -481,54 +463,82 @@ export default function OrdersPage() {
     <div className="bg-[#FAF9F7] min-h-screen">
       <section
         id="order-hero"
-        className="pt-24 sm:pt-28 md:pt-32 pb-12 sm:pb-14 md:pb-16 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]"
+        className="pt-28 sm:pt-32 md:pt-36 pb-8 sm:pb-10 md:pb-12 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]"
       >
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
-          <div className="space-y-4 sm:space-y-5 md:space-y-6">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light text-[#1C1C1C] leading-tight">
-              Silver Crafts
-              <sup
-                className="text-xs ml-0.5"
-                style={{ fontSize: "0.4em", verticalAlign: "super" }}
-              >
-                ™
-              </sup>
-            </h1>
-            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-normal text-[#1C1C1C] leading-snug">
-              Your order list is a few clicks away
-            </h2>
-
-            <div className="flex flex-col gap-2.5 sm:gap-3 py-3 sm:py-4">
-              {QUOTE_STEPS.map((milestone, index) => (
-                <div key={index} className="flex items-start gap-2 sm:gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-xs flex-shrink-0">
-                      {milestone.step}
+        <div className="max-w-7xl mx-auto">
+          {/* Horizontal Roadmap Steps - Equal Width Columns with Perfect Alignment */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-10 mb-6 sm:mb-8 items-center">
+            {/* Left Side: Horizontal Roadmap Steps - 50% width */}
+            <div className="w-full flex flex-col justify-center">
+              {/* Heading - Grouped with steps */}
+              <h2 className="text-lg sm:text-xl md:text-2xl font-normal text-[#1C1C1C] leading-snug mb-4 sm:mb-5 md:mb-6">
+                Your order list is a few clicks away
+              </h2>
+              
+              {/* Horizontal Steps Layout with Equal Spacing */}
+              <div className="w-full">
+                {/* Desktop View - Horizontal alignment */}
+                <div className="hidden sm:flex items-start justify-center gap-0">
+                  {ORDER_STEPS.map((milestone, index) => (
+                    <div key={index} className="flex-1 flex flex-col items-center relative">
+                      {/* Connecting Line - Positioned behind circle */}
+                      {index < ORDER_STEPS.length - 1 && (
+                        <div className="absolute top-5 left-1/2 w-full h-0.5 bg-[#E8E4DA] z-0"></div>
+                      )}
+                      {/* Step Circle - Centered */}
+                      <div className="w-10 h-10 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-base flex-shrink-0 relative z-10 mb-3">
+                        {milestone.step}
+                      </div>
+                      {/* Step Content - Center aligned */}
+                      <div className="text-center w-full px-2">
+                        <h3 className="text-sm font-medium text-[#1C1C1C] mb-1 text-center">
+                          {milestone.title}
+                        </h3>
+                        <p className="text-xs text-[#5A5A5A] leading-relaxed text-center">
+                          {milestone.desc}
+                        </p>
+                      </div>
                     </div>
-                    {index < 2 && (
-                      <div className="w-0.5 h-5 sm:h-6 bg-[#E8E4DA] mt-1"></div>
-                    )}
-                  </div>
-                  <div className="flex-1 pt-0.5">
-                    <h3 className="text-xs sm:text-sm font-medium text-[#1C1C1C] mb-0.5">
-                      {milestone.title}
-                    </h3>
-                    <p className="text-xs text-[#5A5A5A] leading-relaxed">
-                      {milestone.desc}
-                    </p>
-                  </div>
+                  ))}
                 </div>
-              ))}
+                
+                {/* Mobile View - Vertical alignment */}
+                <div className="flex sm:hidden flex-col gap-4">
+                  {ORDER_STEPS.map((milestone, index) => (
+                    <div key={index} className="flex items-start gap-3 relative">
+                      <div className="flex flex-col items-center">
+                        <div className="w-8 h-8 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-sm flex-shrink-0">
+                          {milestone.step}
+                        </div>
+                        {/* Vertical connecting line for mobile */}
+                        {index < ORDER_STEPS.length - 1 && (
+                          <div className="w-0.5 h-8 bg-[#E8E4DA] my-1"></div>
+                        )}
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <h3 className="text-xs font-medium text-[#1C1C1C] mb-1">
+                          {milestone.title}
+                        </h3>
+                        <p className="text-xs text-[#5A5A5A] leading-relaxed">
+                          {milestone.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div className="h-64 sm:h-80 md:h-96 lg:h-[420px] rounded-xl sm:rounded-2xl overflow-hidden border border-[#E8E4DA] bg-white">
-            <img
-              src="/albums/Second page.jpg"
-              alt="Silver manufacturing"
-              className="w-full h-full object-cover"
-              loading="eager"
-            />
+            {/* Right Side Image - 50% width, Vertically Centered */}
+            <div className="w-full flex items-center justify-center md:justify-end">
+              <div className="w-full h-48 sm:h-56 md:h-64 lg:h-72 rounded-xl sm:rounded-2xl overflow-hidden border border-[#E8E4DA] bg-white">
+                <img
+                  src="/albums/Second page.jpg"
+                  alt="Silver manufacturing"
+                  className="w-full h-full object-cover"
+                  loading="eager"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -544,7 +554,7 @@ export default function OrdersPage() {
 
           <div
             className="relative"
-            style={{ position: "relative", minHeight: "140px" }}
+            style={{ position: "relative", minHeight: "200px" }}
           >
             <button
               onClick={(e) => {
@@ -599,7 +609,7 @@ export default function OrdersPage() {
                       key={`${category.id}-${index}`}
                       type="button"
                       onClick={() => handleCategoryClick(category.id)}
-                      className={`group relative flex-shrink-0 w-28 h-28 sm:w-30 sm:h-30 md:w-32 md:h-32 rounded-lg sm:rounded-xl overflow-hidden border-2 ${
+                      className={`group relative flex-shrink-0 w-36 h-36 sm:w-40 sm:h-40 md:w-44 md:h-44 lg:w-48 lg:h-48 rounded-lg sm:rounded-xl overflow-hidden border-2 ${
                         isSelected
                           ? "border-[#a8bba3] bg-[#F3F7F1] shadow-lg"
                           : "border-[#E8E4DA] bg-white"
@@ -622,7 +632,7 @@ export default function OrdersPage() {
                               }
                             }}
                           />
-                          <div className="absolute inset-x-2 sm:inset-x-3 bottom-0.5 rounded-full bg-white/90 px-2 sm:px-3 py-0.5 sm:py-1 text-[9px] sm:text-[10px] font-medium text-[#1C1C1C] tracking-wide shadow-sm">
+                          <div className="absolute inset-x-2 sm:inset-x-3 bottom-1 sm:bottom-1.5 rounded-full bg-white/90 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium text-[#1C1C1C] tracking-wide shadow-sm">
                             {category.name}
                           </div>
                         </>
@@ -693,6 +703,14 @@ export default function OrdersPage() {
                       92.5%
                     </button>
                   </div>
+                  {/* Note for 92.5% purity - positioned below without affecting toggle */}
+                  {selectedPurity === "92.5" && (
+                    <div className="mt-2 bg-[#F5EFE6] rounded-lg px-3 py-2 max-w-xs">
+                      <p className="text-xs sm:text-sm text-[#5A5A5A] leading-relaxed">
+                        <span className="font-medium">Note:</span> 80% purity items are available from ready stock. 92.5% purity is made to order and requires additional production time.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Side: Reserved for future controls */}
@@ -714,39 +732,54 @@ export default function OrdersPage() {
             </div>
           ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6">
-              {filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-white rounded-lg sm:rounded-xl overflow-hidden border-2 border-[#E8E4DA] hover:border-[#a8bba3] hover:shadow-xl transition-all duration-300 group"
-                >
-                  <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden bg-gradient-to-br from-[#FDFBF7] to-[#F5F5F5] flex items-center justify-center p-3 sm:p-4">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110 max-w-full"
-                      loading="lazy"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/logos/Main logo.png";
-                        target.className =
-                          "w-full h-full object-contain opacity-30";
-                      }}
-                    />
+              {filteredProducts.map((product) => {
+                // Calculate total quantity for this product across all variants
+                const productQuantity = orderItems
+                  .filter((item) => item.product.id === product.id)
+                  .reduce((sum, item) => sum + item.quantity, 0);
+                
+                return (
+                  <div
+                    key={product.id}
+                    className="bg-white rounded-lg sm:rounded-xl overflow-hidden border-2 border-[#E8E4DA] hover:border-[#a8bba3] hover:shadow-xl transition-all duration-300 group"
+                  >
+                    <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden bg-gradient-to-br from-[#FDFBF7] to-[#F5F5F5] flex items-center justify-center p-3 sm:p-4">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110 max-w-full"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/logos/Main logo.png";
+                          target.className =
+                            "w-full h-full object-contain opacity-30";
+                        }}
+                      />
+                    </div>
+                    <div className="p-4 sm:p-5">
+                      <h3 className="text-sm sm:text-base font-normal text-[#1C1C1C] mb-3 min-h-[40px] sm:min-h-[48px] text-center">
+                        {product.name}
+                      </h3>
+                      <div className="relative">
+                        <button
+                          onClick={() => openVariantDialog(product)}
+                          className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-[#a8bba3] text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-300 hover:bg-[#93a991] hover:shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
+                        >
+                          <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          View Sizes
+                        </button>
+                        {/* Quantity Indicator next to button - Alternative placement */}
+                        {productQuantity > 0 && (
+                          <div className="absolute -top-2 -right-2 w-6 h-6 sm:w-7 sm:h-7 bg-[#a8bba3] text-white rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs shadow-md border-2 border-white">
+                            {productQuantity}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-4 sm:p-5">
-                    <h3 className="text-sm sm:text-base font-normal text-[#1C1C1C] mb-3 min-h-[40px] sm:min-h-[48px]">
-                      {product.name}
-                    </h3>
-                    <button
-                      onClick={() => openVariantDialog(product)}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-[#a8bba3] text-white rounded-full text-xs sm:text-sm font-medium transition-all duration-300 hover:bg-[#93a991] hover:shadow-lg flex items-center justify-center gap-2 min-h-[44px]"
-                    >
-                      <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      View Options
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12 sm:py-16 md:py-20 px-4">
@@ -773,7 +806,7 @@ export default function OrdersPage() {
       {orderItems.length > 0 && (
         <button
           onClick={() => setShowSidebar(!showSidebar)}
-          className="fixed right-3 sm:right-4 md:right-6 top-1/2 -translate-y-1/2 z-40 bg-[#a8bba3] text-white px-4 sm:px-5 md:px-6 py-3 sm:py-3.5 md:py-4 rounded-l-xl sm:rounded-l-2xl shadow-lg hover:bg-[#93a991] transition-colors duration-300 flex flex-col items-center gap-1.5 sm:gap-2 min-w-[80px] sm:min-w-[90px] md:min-w-[100px]"
+          className="fixed right-3 sm:right-4 md:right-6 top-1/2 -translate-y-1/2 z-30 bg-[#a8bba3] text-white px-4 sm:px-5 md:px-6 py-3 sm:py-3.5 md:py-4 rounded-l-xl sm:rounded-l-2xl shadow-lg hover:bg-[#93a991] transition-colors duration-300 flex flex-col items-center gap-1.5 sm:gap-2 min-w-[80px] sm:min-w-[90px] md:min-w-[100px]"
         >
           <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6" />
           <div className="text-center">
@@ -1067,7 +1100,7 @@ export default function OrdersPage() {
                   {selectedProduct.name}
                 </h3>
                 <p className="text-sm text-[#6F6F6F] mt-1">
-                  Select variants and quantities
+                  select size & add quantity
                 </p>
               </div>
               <button
@@ -1226,11 +1259,6 @@ export default function OrdersPage() {
                                 {variant.dimensions}
                               </p>
                             )}
-                            {variant.description && (
-                              <p className="text-xs sm:text-sm text-[#6F6F6F] mt-1">
-                                {variant.description}
-                              </p>
-                            )}
                           </div>
                           <div className="flex items-center gap-3 ml-4">
                             <button
@@ -1302,16 +1330,6 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Scroll to Top Button */}
-      {showScrollButton && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 bg-[#a8bba3] text-white p-3 rounded-full shadow-lg hover:bg-[#93a991] transition-all duration-300 hover:scale-110 flex items-center justify-center min-h-[44px] min-w-[44px]"
-          aria-label="Scroll to top"
-        >
-          <ArrowUp className="w-5 h-5" />
-        </button>
-      )}
     </div>
   );
 }

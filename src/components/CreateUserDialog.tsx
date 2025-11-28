@@ -107,7 +107,7 @@ export function CreateUserDialog() {
         try {
           const successful = document.execCommand("copy");
           if (successful) {
-            toast.success("Password copied to clipboard!");
+    toast.success("Password copied to clipboard!");
           } else {
             toast.error("Failed to copy to clipboard");
           }

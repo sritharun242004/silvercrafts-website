@@ -139,7 +139,7 @@ export default function CreateUserDialog({
         try {
           const successful = document.execCommand("copy");
           if (successful) {
-            toast.success("Copied to clipboard!");
+    toast.success("Copied to clipboard!");
           } else {
             toast.error("Failed to copy to clipboard");
           }

@@ -16,7 +16,7 @@ export default function Footer() {
             />
           </div>
           <p className="text-base md:text-lg text-[#C0C0C0] max-w-2xl mx-auto mb-6 md:mb-8 px-4">
-            We make silver sourcing the easiest part of your business
+            We make silver articles sourcing the easiest part of your business
           </p>
         </div>
 

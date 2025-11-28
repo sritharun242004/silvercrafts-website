@@ -522,8 +522,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
           {navbarLayout === 'option3' && (
             <>
               <div 
-                className="flex items-center cursor-pointer pointer-events-auto group"
-                style={{ marginRight: 'auto', marginLeft: '0' }}
+                className="flex items-center cursor-pointer pointer-events-auto group absolute left-1/2 transform -translate-x-1/2"
             onClick={() => {
               if (onLogoClick) {
                 onLogoClick();
@@ -537,9 +536,7 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
               style={{ 
                 color: menuButtonColor,
                     fontFamily: "'Raleway', sans-serif",
-                    letterSpacing: '0.02em',
-                    marginLeft: '0',
-                    paddingLeft: '0'
+                    letterSpacing: '0.02em'
               }}
             >
                   Silver Crafts<sup className="text-xs ml-0.5" style={{ fontSize: '0.5em', verticalAlign: 'super' }}>™</sup>
@@ -600,22 +597,30 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
           style={{ 
             width: 'min(320px, 80vw)',
             padding: 'clamp(1.5rem, 4vw, 2rem)',
-            boxShadow: '-5px 0 20px rgba(0, 0, 0, 0.15)',
+            boxShadow: '-5px 0 20px rgba(0, 0, 0, 0.5)',
             right: 0,
             left: 'auto',
-            backgroundColor: '#F5EFE6'
+            backgroundColor: '#1A1A1A'
           }}
           aria-hidden={!open}
         >
           <button
             onClick={toggleMenu}
-            className="absolute top-3 right-3 md:top-4 md:right-4 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center border border-[#1C1C1C]/20 rounded-full hover:border-[#a8bba3] hover:bg-white hover:rotate-90 transition-all duration-200 z-50"
+            className="absolute top-3 right-3 md:top-4 md:right-4 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center border border-white/20 rounded-full hover:border-[#a8bba3] hover:bg-white/10 hover:rotate-90 transition-all duration-200 z-50"
             aria-label="Close menu"
           >
-            <X className="w-5 h-5 text-[#1C1C1C]" />
+            <X className="w-5 h-5 text-white" />
           </button>
           
-          <nav className="flex-1 flex flex-col gap-2 md:gap-3 py-4 pt-8 md:pt-10" role="navigation">
+          {/* Menu Header */}
+          <div className="text-center mb-8 mt-4">
+            <h2 className="text-2xl md:text-3xl font-light text-white tracking-wider mb-2" style={{ fontFamily: "'Raleway', sans-serif" }}>
+              MENU
+            </h2>
+            <div className="w-16 h-px bg-[#a8bba3] mx-auto"></div>
+          </div>
+          
+          <nav className="flex-1 flex flex-col gap-1 py-4" role="navigation">
             {items && items.length ? (
               items.map((it, idx) => (
                 <div
@@ -624,57 +629,31 @@ export const StaggeredMenu: React.FC<StaggeredMenuProps> = ({
                 >
                   {it.onClick ? (
                     <button
-                      className="w-full flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 bg-white/60 border-l-2 border-transparent hover:border-[#a8bba3] hover:bg-white hover:-translate-x-1 transition-all duration-200 rounded cursor-pointer min-h-[44px]"
+                      className="w-full text-center px-4 py-3.5 md:py-4 bg-transparent hover:bg-white/5 transition-all duration-200 cursor-pointer min-h-[48px]"
                       onClick={() => handleItemClick(it)}
                       aria-label={it.ariaLabel || it.label}
                     >
-                      <span className="text-base sm:text-lg md:text-xl font-normal text-[#1C1C1C] tracking-normal group-hover:text-[#a8bba3] transition-colors duration-200">
+                      <span className="text-base md:text-lg font-light text-white/90 tracking-wide group-hover:text-[#a8bba3] transition-colors duration-200" style={{ fontFamily: "'Raleway', sans-serif" }}>
                         {it.label}
-                      </span>
-                      <span className="text-xs font-light text-[#5A5A5A] font-mono">
-                        {String(idx + 1).padStart(2, '0')}
                       </span>
                     </button>
                   ) : (
                     <a
-                      className="w-full flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 bg-white/60 border-l-2 border-transparent hover:border-[#a8bba3] hover:bg-white hover:-translate-x-1 transition-all duration-200 rounded cursor-pointer min-h-[44px]"
+                      className="w-full block text-center px-4 py-3.5 md:py-4 bg-transparent hover:bg-white/5 transition-all duration-200 cursor-pointer min-h-[48px]"
                       href={it.link || '#'}
                       aria-label={it.ariaLabel || it.label}
                     >
-                      <span className="text-base sm:text-lg md:text-xl font-normal text-[#1C1C1C] tracking-normal group-hover:text-[#a8bba3] transition-colors duration-200">
+                      <span className="text-base md:text-lg font-light text-white/90 tracking-wide group-hover:text-[#a8bba3] transition-colors duration-200" style={{ fontFamily: "'Raleway', sans-serif" }}>
                         {it.label}
-                      </span>
-                      <span className="text-xs font-light text-[#5A5A5A] font-mono">
-                        {String(idx + 1).padStart(2, '0')}
                       </span>
                     </a>
                   )}
                 </div>
               ))
             ) : (
-              <div className="text-center text-[#1C1C1C]/50">No items</div>
+              <div className="text-center text-white/50">No items</div>
             )}
           </nav>
-
-          <div className="mt-auto pt-4 md:pt-6 border-t border-[#a8bba3]/30">
-            <button
-              onClick={() => {
-                  toggleMenu();
-                if (onNavigate) {
-                  onNavigate('quote');
-                  setTimeout(() => {
-                    const categoriesSection = document.getElementById('categories-section');
-                    if (categoriesSection) {
-                      categoriesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  }, 100);
-                }
-              }}
-              className="w-full px-5 md:px-6 py-3 md:py-3.5 bg-[#a8bba3] text-white text-sm md:text-base font-normal rounded-full hover:bg-[#93a991] hover:shadow-lg transition-all duration-200 min-h-[44px]"
-            >
-              Explore Products
-            </button>
-          </div>
         </aside>
       </div>
 

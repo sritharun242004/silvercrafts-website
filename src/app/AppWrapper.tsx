@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import ScrollToTop from '@/components/ScrollToTop';
 
 interface AppWrapperProps {
   children: React.ReactNode;
@@ -60,6 +61,7 @@ export default function AppWrapper({ children }: AppWrapperProps) {
       )}
       {children}
       <Footer />
+      <ScrollToTop />
     </div>
   );
 }

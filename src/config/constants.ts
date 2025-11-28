@@ -27,9 +27,9 @@ export const TIMINGS = {
 
 // Carousel Configuration
 export const CAROUSEL_CONFIG = {
-  scrollAmount: 320,          // Pixels to scroll on nav button click
-  categoryCardWidth: 128,     // Width of category cards (w-32 = 128px)
-  categoryCardHeight: 128,    // Height of category cards (h-32 = 128px)
+  scrollAmount: 400,          // Pixels to scroll on nav button click
+  categoryCardWidth: 192,     // Width of category cards (w-48 = 192px at lg)
+  categoryCardHeight: 192,    // Height of category cards (h-48 = 192px at lg)
 } as const;
 
 // Animation Configuration
@@ -113,6 +113,25 @@ export const QUOTE_STEPS = [
     step: '3', 
     title: 'Receive Quotation', 
     desc: 'Get a tailored quote for your business' 
+  }
+] as const;
+
+// Order Process Steps
+export const ORDER_STEPS = [
+  { 
+    step: '1', 
+    title: 'Select Product', 
+    desc: 'Choose Category & Choose Variant' 
+  },
+  { 
+    step: '2', 
+    title: 'Choose quantity', 
+    desc: 'Select size & Add quantity' 
+  },
+  { 
+    step: '3', 
+    title: 'submit order', 
+    desc: 'Review order list & submit' 
   }
 ] as const;
 

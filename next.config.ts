@@ -21,7 +21,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ["@sanity/client", "@sanity/image-url"],
   },
-  // Reduce bundle size
+  // Reduce bundle size - Webpack config (Turbopack handles this automatically)
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, Star, Truck, Receipt, IndianRupee, ArrowRight } from 'lucide-react';
+import { TrendingUp, Star, Truck, Receipt, IndianRupee } from 'lucide-react';
 import { 
   FACTORY_IMAGES, 
   HOME_CAROUSEL_IMAGES, 
@@ -84,6 +84,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
+
       </section>
 
       {/* Factory Carousel Section with Title */}
@@ -239,41 +240,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-12 sm:py-16 md:py-20 lg:py-28 px-4 sm:px-6 bg-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#FAF9F7] via-white to-[#FAF9F7] opacity-50"></div>
-        <div className="max-w-5xl mx-auto relative z-10">
-          <div className="animate-on-scroll">
-            <div className="text-center mb-8 sm:mb-10 md:mb-12">
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-light text-[#1C1C1C] mb-3 sm:mb-4 px-4">Our story</h2>
-              <div className="inline-block mb-3 sm:mb-4">
-                <div className="w-12 sm:w-14 md:w-16 h-0.5 sm:h-1 bg-[#a8bba3] mx-auto rounded-full"></div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl sm:rounded-2xl border border-[#E8E4DA] shadow-sm p-5 sm:p-6 md:p-8 lg:p-12 space-y-5 sm:space-y-6">
-              <div className="space-y-4 sm:space-y-5 text-left">
-                <p className="text-sm sm:text-base md:text-lg text-[#5A5A5A] leading-relaxed">
-                Silver Crafts began with one goal — to manufacture silver articles that jewellery retailers can rely on.
-              </p>
-                
-                <div className="h-px bg-gradient-to-r from-transparent via-[#E8E4DA] to-transparent my-4 sm:my-5 md:my-6"></div>
-                
-                <p className="text-sm sm:text-base md:text-lg text-[#5A5A5A] leading-relaxed">
-                Over the years, we listened to what silver retailers really need: consistent quality, factory pricing, and on-time delivery without constant follow-up. That's how we built a system-focused manufacturing that now serves well-known corporate jewellery brands & independent silver retailers across India.
-              </p>
-                
-                <div className="h-px bg-gradient-to-r from-transparent via-[#E8E4DA] to-transparent my-4 sm:my-5 md:my-6"></div>
-                
-                <p className="text-sm sm:text-base md:text-lg text-[#5A5A5A] leading-relaxed">
-                  We are here to be your long-term silver partner — to grow your business, and to grow with you.
-              </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6">
+      <section id="why-us" className="py-12 sm:py-16 md:py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto animate-on-scroll">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-light text-center text-[#1C1C1C] mb-8 sm:mb-10 md:mb-12 animate-on-scroll px-4">
             With us you can
@@ -330,6 +297,40 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section id="our-story" className="py-12 sm:py-16 md:py-20 lg:py-28 px-4 sm:px-6 bg-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#FAF9F7] via-white to-[#FAF9F7] opacity-50"></div>
+        <div className="max-w-5xl mx-auto relative z-10">
+          <div className="animate-on-scroll">
+            <div className="text-center mb-8 sm:mb-10 md:mb-12">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-light text-[#1C1C1C] mb-3 sm:mb-4 px-4">Our story</h2>
+              <div className="inline-block mb-3 sm:mb-4">
+                <div className="w-12 sm:w-14 md:w-16 h-0.5 sm:h-1 bg-[#a8bba3] mx-auto rounded-full"></div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-[#E8E4DA] shadow-sm p-5 sm:p-6 md:p-8 lg:p-12 space-y-5 sm:space-y-6">
+              <div className="space-y-4 sm:space-y-5 text-left">
+                <p className="text-sm sm:text-base md:text-lg text-[#5A5A5A] leading-relaxed">
+                Silver Crafts began with one goal — to manufacture silver articles that jewellery retailers can rely on.
+              </p>
+                
+                <div className="h-px bg-gradient-to-r from-transparent via-[#E8E4DA] to-transparent my-4 sm:my-5 md:my-6"></div>
+                
+                <p className="text-sm sm:text-base md:text-lg text-[#5A5A5A] leading-relaxed">
+                Over the years, we listened to what silver retailers really need: consistent quality, factory pricing, and on-time delivery without constant follow-up. That's how we built a system-focused manufacturing that now serves well-known corporate jewellery brands & independent silver retailers across India.
+              </p>
+                
+                <div className="h-px bg-gradient-to-r from-transparent via-[#E8E4DA] to-transparent my-4 sm:my-5 md:my-6"></div>
+                
+                <p className="text-sm sm:text-base md:text-lg text-[#5A5A5A] leading-relaxed">
+                  We are here to be your long-term silver partner — to grow your business, and to grow with you.
+              </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="py-12 sm:py-14 md:py-16 px-4 sm:px-6 bg-white">
         <div className="max-w-7xl mx-auto animate-on-scroll">
           <h3 className="text-xl sm:text-2xl md:text-3xl font-light text-center text-[#1C1C1C] mb-6 sm:mb-7 md:mb-8 animate-on-scroll px-4">
@@ -368,10 +369,9 @@ export default function HomePage() {
                 smoothScrollToElement('quote-hero');
               }, 100);
             }}
-            className="px-6 py-3 sm:px-8 sm:py-4 bg-[#a8bba3] text-white rounded-full text-sm sm:text-base font-normal transition-colors duration-300 hover:bg-[#93a991] flex items-center justify-center gap-2 mx-auto min-h-[44px]"
+            className="px-6 py-3 sm:px-8 sm:py-4 bg-[#a8bba3] text-white rounded-full text-sm sm:text-base font-normal transition-colors duration-300 hover:bg-[#93a991] flex items-center justify-center mx-auto min-h-[44px]"
           >
-            Build your quote
-            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            Build your quotation
           </button>
         </div>
       </section>

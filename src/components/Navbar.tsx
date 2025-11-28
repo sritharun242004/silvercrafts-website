@@ -89,8 +89,8 @@ export default function Navbar({ onNavigate, currentPage }: NavbarProps) {
       onClick: () => onNavigate("home"),
     },
     {
-      label: "Categories",
-      ariaLabel: "View categories",
+      label: "Explore Products",
+      ariaLabel: "Explore products",
       onClick: () => {
         if (currentPage === "home") {
           document
@@ -107,8 +107,44 @@ export default function Navbar({ onNavigate, currentPage }: NavbarProps) {
       },
     },
     {
-      label: "Get Quote",
-      ariaLabel: "Get a quote",
+      label: "Why Us",
+      ariaLabel: "Why choose us",
+      onClick: () => {
+        if (currentPage === "home") {
+          document
+            .getElementById("why-us")
+            ?.scrollIntoView({ behavior: "smooth" });
+        } else {
+          onNavigate("home");
+          setTimeout(() => {
+            document
+              .getElementById("why-us")
+              ?.scrollIntoView({ behavior: "smooth" });
+          }, 100);
+        }
+      },
+    },
+    {
+      label: "Our Story",
+      ariaLabel: "Our story",
+      onClick: () => {
+        if (currentPage === "home") {
+          document
+            .getElementById("our-story")
+            ?.scrollIntoView({ behavior: "smooth" });
+        } else {
+          onNavigate("home");
+          setTimeout(() => {
+            document
+              .getElementById("our-story")
+              ?.scrollIntoView({ behavior: "smooth" });
+          }, 100);
+        }
+      },
+    },
+    {
+      label: "Build Your Quotation",
+      ariaLabel: "Build your quotation",
       onClick: () => {
         onNavigate("quote");
         setTimeout(() => {
@@ -131,15 +167,6 @@ export default function Navbar({ onNavigate, currentPage }: NavbarProps) {
           },
         ]
       : []),
-    {
-      label: "Contact",
-      ariaLabel: "Contact us",
-      onClick: () => {
-        document
-          .getElementById("contact")
-          ?.scrollIntoView({ behavior: "smooth" });
-      },
-    },
     // Add Admin Dashboard menu item if user is admin
     ...(session?.user?.role === "ADMIN"
       ? [
@@ -160,7 +187,8 @@ export default function Navbar({ onNavigate, currentPage }: NavbarProps) {
       : []),
   ];
 
-  const defaultMenuColor = isWhiteBackground ? "#a8bba3" : "#fff";
+  // Menu button color: white on home page, black on order page
+  const defaultMenuColor = currentPage === "home" ? "#fff" : "#000000";
   const openMenuColor = "#a8bba3";
 
   const handleLoginClick = async () => {
@@ -196,7 +224,7 @@ export default function Navbar({ onNavigate, currentPage }: NavbarProps) {
       changeMenuColorOnOpen={true}
       colors={["#1A1A1A", "#2A2A2A"]}
       accentColor="#a8bba3"
-      isFixed={true}
+      isFixed={false}
       onLogoClick={() => onNavigate("home")}
       navbarLayout="option3"
       onLoginClick={handleLoginClick}
