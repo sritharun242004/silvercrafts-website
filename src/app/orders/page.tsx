@@ -62,6 +62,7 @@ export default function OrdersPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedPurity, setSelectedPurity] = useState<string>("80");
   const categoryCarouselRef = useRef<HTMLDivElement>(null);
+  const hasFetchedRef = useRef(false);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
@@ -72,7 +73,6 @@ export default function OrdersPage() {
   const [variantQuantities, setVariantQuantities] = useState<{
     [key: string]: number;
   }>({});
-  const hasFetchedRef = useRef(false);
   const [formData, setFormData] = useState({
     businessName: "",
     yourName: "",
@@ -100,45 +100,15 @@ export default function OrdersPage() {
     }
   }, [session, router]);
 
-  useEffect(() => {
-    // Only fetch products once when user is authenticated
-    if (session?.user && !hasFetchedRef.current && allProducts.length === 0) {
-      hasFetchedRef.current = true;
-      fetchProducts();
-    }
-  }, [session?.user?.id]); // Only depend on user ID
-
-
-  // Filter products by category and purity
-  useEffect(() => {
-    let filtered = allProducts;
-
-    // Filter by category
-    if (selectedCategory !== "all") {
-      const categoryName = normalizeCategory(selectedCategory);
-      filtered = filtered.filter((p) => p.category === categoryName);
-    }
-
-    // Filter by purity - only show products that have variants with the selected purity
-    filtered = filtered.filter((product) => {
-      if (product.variants && Array.isArray(product.variants)) {
-        return product.variants.some((variant) => {
-          if (variant.purities && Array.isArray(variant.purities)) {
-            return variant.purities.includes(selectedPurity);
-          }
-          return false;
-        });
-      }
-      // If no variants, don't show the product
-      return false;
-    });
-
-    setFilteredProducts(filtered);
-  }, [allProducts, selectedCategory, selectedPurity]);
-
   const fetchProducts = useCallback(async () => {
+    // Prevent multiple fetches
+    if (hasFetchedRef.current) {
+      return;
+    }
+
     try {
       setLoading(true);
+      hasFetchedRef.current = true;
       const response = await fetch("/api/products", {
         cache: "no-store", // Prevent caching issues
       });
@@ -168,13 +138,49 @@ export default function OrdersPage() {
         setAllProducts(products);
       } else {
         console.error("Failed to fetch products");
+        hasFetchedRef.current = false; // Allow retry on error
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+      hasFetchedRef.current = false; // Allow retry on error
     } finally {
       setLoading(false);
     }
   }, []); // No dependencies - function is stable
+
+  useEffect(() => {
+    // Only fetch products once when user is authenticated
+    if (session?.user && !hasFetchedRef.current && allProducts.length === 0) {
+      fetchProducts();
+    }
+  }, [session?.user, fetchProducts, allProducts.length]);
+
+  // Filter products by category and purity
+  useEffect(() => {
+    let filtered = allProducts;
+
+    // Filter by category
+    if (selectedCategory !== "all") {
+      const categoryName = normalizeCategory(selectedCategory);
+      filtered = filtered.filter((p) => p.category === categoryName);
+    }
+
+    // Filter by purity - only show products that have variants with the selected purity
+    filtered = filtered.filter((product) => {
+      if (product.variants && Array.isArray(product.variants)) {
+        return product.variants.some((variant) => {
+          if (variant.purities && Array.isArray(variant.purities)) {
+            return variant.purities.includes(selectedPurity);
+          }
+          return false;
+        });
+      }
+      // If no variants, don't show the product
+      return false;
+    });
+
+    setFilteredProducts(filtered);
+  }, [allProducts, selectedCategory, selectedPurity]);
 
   // Helper function to normalize category names
   const normalizeCategory = (categoryName: string): string => {
@@ -466,77 +472,63 @@ export default function OrdersPage() {
         className="pt-28 sm:pt-32 md:pt-36 pb-8 sm:pb-10 md:pb-12 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]"
       >
         <div className="max-w-7xl mx-auto">
-          {/* Horizontal Roadmap Steps - Equal Width Columns with Perfect Alignment */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 md:gap-10 mb-6 sm:mb-8 items-center">
-            {/* Left Side: Horizontal Roadmap Steps - 50% width */}
-            <div className="w-full flex flex-col justify-center">
-              {/* Heading - Grouped with steps */}
-              <h2 className="text-lg sm:text-xl md:text-2xl font-normal text-[#1C1C1C] leading-snug mb-4 sm:mb-5 md:mb-6">
-                Your order list is a few clicks away
-              </h2>
+          {/* Centered Hero Section with Horizontal Roadmap */}
+          <div className="w-full flex flex-col justify-center items-center">
+            {/* Heading - Centered */}
+            <h2 className="text-lg sm:text-xl md:text-2xl font-normal text-[#1C1C1C] leading-snug mb-4 sm:mb-5 md:mb-6 text-center">
+              Your order list is a few clicks away
+            </h2>
+            
+            {/* Horizontal Steps Layout with Equal Spacing */}
+            <div className="w-full">
+              {/* Desktop View - Horizontal alignment */}
+              <div className="hidden sm:flex items-start justify-center gap-0">
+                {ORDER_STEPS.map((milestone, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center relative">
+                    {/* Connecting Line - Positioned behind circle */}
+                    {index < ORDER_STEPS.length - 1 && (
+                      <div className="absolute top-5 left-1/2 w-full h-0.5 bg-[#E8E4DA] z-0"></div>
+                    )}
+                    {/* Step Circle - Centered */}
+                    <div className="w-10 h-10 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-base flex-shrink-0 relative z-10 mb-3">
+                      {milestone.step}
+                    </div>
+                    {/* Step Content - Center aligned */}
+                    <div className="text-center w-full px-2">
+                      <h3 className="text-sm font-medium text-[#1C1C1C] mb-1 text-center">
+                        {milestone.title}
+                      </h3>
+                      <p className="text-xs text-[#5A5A5A] leading-relaxed text-center">
+                        {milestone.desc}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
               
-              {/* Horizontal Steps Layout with Equal Spacing */}
-              <div className="w-full">
-                {/* Desktop View - Horizontal alignment */}
-                <div className="hidden sm:flex items-start justify-center gap-0">
-                  {ORDER_STEPS.map((milestone, index) => (
-                    <div key={index} className="flex-1 flex flex-col items-center relative">
-                      {/* Connecting Line - Positioned behind circle */}
-                      {index < ORDER_STEPS.length - 1 && (
-                        <div className="absolute top-5 left-1/2 w-full h-0.5 bg-[#E8E4DA] z-0"></div>
-                      )}
-                      {/* Step Circle - Centered */}
-                      <div className="w-10 h-10 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-base flex-shrink-0 relative z-10 mb-3">
+              {/* Mobile View - Vertical alignment */}
+              <div className="flex sm:hidden flex-col gap-4">
+                {ORDER_STEPS.map((milestone, index) => (
+                  <div key={index} className="flex items-start gap-3 relative">
+                    <div className="flex flex-col items-center">
+                      <div className="w-8 h-8 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-sm flex-shrink-0">
                         {milestone.step}
                       </div>
-                      {/* Step Content - Center aligned */}
-                      <div className="text-center w-full px-2">
-                        <h3 className="text-sm font-medium text-[#1C1C1C] mb-1 text-center">
-                          {milestone.title}
-                        </h3>
-                        <p className="text-xs text-[#5A5A5A] leading-relaxed text-center">
-                          {milestone.desc}
-                        </p>
-                      </div>
+                      {/* Vertical connecting line for mobile */}
+                      {index < ORDER_STEPS.length - 1 && (
+                        <div className="w-0.5 h-8 bg-[#E8E4DA] my-1"></div>
+                      )}
                     </div>
-                  ))}
-                </div>
-                
-                {/* Mobile View - Vertical alignment */}
-                <div className="flex sm:hidden flex-col gap-4">
-                  {ORDER_STEPS.map((milestone, index) => (
-                    <div key={index} className="flex items-start gap-3 relative">
-                      <div className="flex flex-col items-center">
-                        <div className="w-8 h-8 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-sm flex-shrink-0">
-                          {milestone.step}
-                        </div>
-                        {/* Vertical connecting line for mobile */}
-                        {index < ORDER_STEPS.length - 1 && (
-                          <div className="w-0.5 h-8 bg-[#E8E4DA] my-1"></div>
-                        )}
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <h3 className="text-xs font-medium text-[#1C1C1C] mb-1">
-                          {milestone.title}
-                        </h3>
-                        <p className="text-xs text-[#5A5A5A] leading-relaxed">
-                          {milestone.desc}
-                        </p>
-                      </div>
+                    <div className="flex-1 pt-1">
+                      <h3 className="text-xs font-medium text-[#1C1C1C] mb-1">
+                        {milestone.title}
+                      </h3>
+                      <p className="text-xs text-[#5A5A5A] leading-relaxed">
+                        {milestone.desc}
+                      </p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* Right Side Image - 50% width, Vertically Centered */}
-            <div className="w-full flex items-center justify-center md:justify-end">
-              <div className="w-full h-48 sm:h-56 md:h-64 lg:h-72 rounded-xl sm:rounded-2xl overflow-hidden border border-[#E8E4DA] bg-white">
-                <img
-                  src="/albums/Second page.jpg"
-                  alt="Silver manufacturing"
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -657,9 +649,8 @@ export default function OrdersPage() {
         className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 bg-white"
       >
         <div className="max-w-7xl mx-auto">
-          <div className="mb-8 sm:mb-10 md:mb-12 px-4">
-            {/* Title Section */}
-            <div className="text-center mb-4 sm:mb-6">
+          <div className="relative mb-8 sm:mb-10 md:mb-12 px-4">
+            <div className="text-center">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-normal text-[#1C1C1C] mb-2">
                 {selectedCategory === "all"
                   ? "All Products"
@@ -769,7 +760,7 @@ export default function OrdersPage() {
                           <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           View Sizes
                         </button>
-                        {/* Quantity Indicator next to button - Alternative placement */}
+                        {/* Quantity Indicator next to button */}
                         {productQuantity > 0 && (
                           <div className="absolute -top-2 -right-2 w-6 h-6 sm:w-7 sm:h-7 bg-[#a8bba3] text-white rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs shadow-md border-2 border-white">
                             {productQuantity}
@@ -993,7 +984,7 @@ export default function OrdersPage() {
                     setFormData({ ...formData, designation: e.target.value })
                   }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text sm sm:text-base"
-                  placeholder="e.g. Owner, Manager, Buyer"
+                  placeholder="e.g. Owner, Manager"
                 />
               </div>
 
@@ -1031,10 +1022,11 @@ export default function OrdersPage() {
 
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-[#1A1A1A] mb-1.5 sm:mb-2">
-                  GSTIN (Optional)
+                  GSTIN *
                 </label>
                 <input
                   type="text"
+                  required
                   value={formData.gstin}
                   onChange={(e) =>
                     setFormData({ ...formData, gstin: e.target.value })
@@ -1254,11 +1246,6 @@ export default function OrdersPage() {
                                 )}
                               </div>
                             )}
-                            {variant.dimensions && (
-                              <p className="text-xs text-[#6F6F6F] mt-1">
-                                {variant.dimensions}
-                              </p>
-                            )}
                           </div>
                           <div className="flex items-center gap-3 ml-4">
                             <button
@@ -1329,7 +1316,6 @@ export default function OrdersPage() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

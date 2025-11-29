@@ -187,9 +187,10 @@ export default function Navbar({ onNavigate, currentPage }: NavbarProps) {
       : []),
   ];
 
-  // Menu button color: white on home page, black on order page
+  // Menu button color: white on home page, black on order/quotation pages
+  // Both logout and menu buttons should always use the same color
   const defaultMenuColor = currentPage === "home" ? "#fff" : "#000000";
-  const openMenuColor = "#a8bba3";
+  const openMenuColor = defaultMenuColor; // Keep same color when menu opens
 
   const handleLoginClick = async () => {
     if (session) {
@@ -220,8 +221,8 @@ export default function Navbar({ onNavigate, currentPage }: NavbarProps) {
       displaySocials={false}
       displayItemNumbering={true}
       menuButtonColor={defaultMenuColor}
-      openMenuButtonColor={openMenuColor}
-      changeMenuColorOnOpen={true}
+      openMenuButtonColor={defaultMenuColor}
+      changeMenuColorOnOpen={false}
       colors={["#1A1A1A", "#2A2A2A"]}
       accentColor="#a8bba3"
       isFixed={false}

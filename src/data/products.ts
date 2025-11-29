@@ -13,22 +13,22 @@ export interface Category {
 }
 
 export const categories: Category[] = [
-  { id: 'vessels', name: 'Vessels', image: '/Products/Vessels/ADDUKU.jpg' },
-  { id: 'lamps', name: 'Lamps', image: '/Products/Lamps/AGUL.jpg' },
-  { id: 'coins', name: 'Coins & Bars', image: '/Products/Coins/BAR 1.jpg' },
-  { id: 'bowl', name: 'Bowl', image: '/Products/Bowl/BOWL PLAIN.jpg' },
-  { id: 'boxes', name: 'Boxes', image: '/Products/Boxes/BOX 1.jpg' },
-  { id: 'chombu', name: 'Chombu', image: '/Products/Chombu/CHOMBU PLAIN.jpg' },
-  { id: 'cups', name: 'Cups', image: '/Products/Cup/CUP FRUIT 1.jpg' },
-  { id: 'glass', name: 'Glass', image: '/Products/Glass/GLASS PLAIN 1.jpg' },
-  { id: 'kamakshi', name: 'Kamakshi', image: '/Products/Kamakshi/KAMAKSHI 2.jpg' },
-  { id: 'kodam', name: 'Kodam', image: '/Products/Kodam/kodam plain.jpg' },
-  { id: 'others', name: 'Others', image: '/Products/Others/GHEE JADI 2.jpg' },
-  { id: 'panchapathram', name: 'Panchapathram', image: '/Products/Panchapathram/PANCHAPATHRAM.jpg' },
-  { id: 'plates', name: 'Plates', image: '/Products/Plates/PLATE S D PLAIN.jpg' },
-  { id: 'simil', name: 'Simil', image: '/Products/Simil/Design Chennai Simil.jpg' },
   { id: 'trays', name: 'Trays', image: '/Products/Trays/tray ashtalaksmi 2.jpg' },
-  { id: 'vel', name: 'Vel', image: '/Products/Vel/VEL HOLLOW.jpg' }
+  { id: 'kodam', name: 'Kodam', image: '/Products/Kodam/kodam plain.jpg' },
+  { id: 'plates', name: 'Plates', image: '/Products/Plates/PLATE S D PLAIN.jpg' },
+  { id: 'kamakshi', name: 'Kamakshi', image: '/Products/Kamakshi/KAMAKSHI 2.jpg' },
+  { id: 'chombu', name: 'Chombu', image: '/Products/Chombu/CHOMBU PLAIN.jpg' },
+  { id: 'glass', name: 'Glass', image: '/Products/Glass/GLASS PLAIN 1.jpg' },
+  { id: 'bowl', name: 'Bowl', image: '/Products/Bowl/BOWL PLAIN.jpg' },
+  { id: 'cups', name: 'Cups', image: '/Products/Cup/CUP FRUIT 1.jpg' },
+  { id: 'panchapathram', name: 'Panchapathram', image: '/Products/Panchapathram/PANCHAPATHRAM.jpg' },
+  { id: 'lamps', name: 'Lamps', image: '/Products/Lamps/AGUL.jpg' },
+  { id: 'simil', name: 'Simil', image: '/Products/Simil/Design Chennai Simil.jpg' },
+  { id: 'vel', name: 'Vel', image: '/Products/Vel/VEL HOLLOW.jpg' },
+  { id: 'vessels', name: 'Vessels', image: '/Products/Vessels/ADDUKU.jpg' },
+  { id: 'coins', name: 'Coins & Bars', image: '/Products/Coins/BAR 1.jpg' },
+  { id: 'boxes', name: 'Boxes', image: '/Products/Boxes/BOX 1.jpg' },
+  { id: 'others', name: 'Others', image: '/Products/Others/GHEE JADI 2.jpg' }
 ];
 
 export const products: Product[] = [

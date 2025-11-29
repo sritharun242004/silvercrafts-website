@@ -43,6 +43,7 @@ export default function QuotationPage() {
     email: "",
     gstin: "",
   });
+  const hasFetchedRef = useRef(false);
 
   const handleNavigate = (page: "home" | "quote") => {
     if (page === "home") {
@@ -52,14 +53,17 @@ export default function QuotationPage() {
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
+    // Prevent multiple simultaneous fetches
+    if (hasFetchedRef.current) return;
+    
     try {
+      hasFetchedRef.current = true;
       setLoading(true);
-      const response = await fetch("/api/products");
+      const response = await fetch("/api/products", {
+        cache: "no-store",
+      });
+      
       if (response.ok) {
         const data = await response.json();
         const fetchedProducts: Product[] = (data.products || []).map(
@@ -83,17 +87,54 @@ export default function QuotationPage() {
         );
         setAllProducts(fetchedProducts);
       } else {
-        console.error("Failed to fetch products");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Failed to fetch products:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        });
         // Fallback to static products if API fails
         setAllProducts(products);
+        hasFetchedRef.current = false; // Allow retry on error
       }
     } catch (error) {
       console.error("Error fetching products:", error);
       // Fallback to static products if API fails
       setAllProducts(products);
+      hasFetchedRef.current = false; // Allow retry on error
     } finally {
       setLoading(false);
     }
+  }, []); // No dependencies - function is stable
+
+  useEffect(() => {
+    // Only fetch products once
+    if (!hasFetchedRef.current && allProducts.length === 0) {
+      fetchProducts();
+    }
+  }, [fetchProducts, allProducts.length]);
+
+  // Helper function to normalize category names
+  const normalizeCategory = (categoryName: string): string => {
+    const categoryMap: { [key: string]: string } = {
+      vessels: "Vessels",
+      lamps: "Lamps",
+      coins: "Coins & Bars",
+      bowl: "Bowl",
+      boxes: "Boxes",
+      chombu: "Chombu",
+      cups: "Cups",
+      glass: "Glass",
+      kamakshi: "Kamakshi",
+      kodam: "Kodam",
+      others: "Others",
+      panchapathram: "Panchapathram",
+      plates: "Plates",
+      simil: "Simil",
+      trays: "Trays",
+      vel: "Vel",
+    };
+    return categoryMap[categoryName] || categoryName;
   };
 
   // Filter products by category only (no purity filtering for quotation page)
@@ -102,7 +143,8 @@ export default function QuotationPage() {
 
     // Filter by category only
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
+      const categoryName = normalizeCategory(selectedCategory);
+      filtered = filtered.filter((p) => p.category === categoryName);
     }
 
     setFilteredProducts(filtered);
@@ -111,13 +153,21 @@ export default function QuotationPage() {
   const handleCategoryClick = useCallback((categoryId: string) => {
     setSelectedCategory(categoryId);
 
+    if (categoryId === "all") {
+      setFilteredProducts(allProducts);
+    } else {
+      const categoryName = normalizeCategory(categoryId);
+      const filtered = allProducts.filter((p) => p.category === categoryName);
+      setFilteredProducts(filtered);
+    }
+
     setTimeout(() => {
       const productsSection = document.getElementById("products-section");
       if (productsSection) {
         productsSection.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     }, 100);
-  }, []);
+  }, [allProducts]);
 
   const addToQuote = useCallback((product: Product) => {
     setQuoteItems((prevItems) => {
@@ -251,54 +301,68 @@ export default function QuotationPage() {
 
       <section
         id="quote-hero"
-        className="pt-24 sm:pt-28 md:pt-32 pb-12 sm:pb-14 md:pb-16 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]"
+        className="pt-28 sm:pt-32 md:pt-36 pb-8 sm:pb-10 md:pb-12 px-4 sm:px-6 bg-[#FDFBF7] border-b border-[#EDEAE2]"
       >
-        <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 sm:gap-10 md:gap-12 items-center">
-          <div className="space-y-4 sm:space-y-5 md:space-y-6">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light text-[#1C1C1C] leading-tight">
-              Silver Crafts
-              <sup
-                className="text-xs ml-0.5"
-                style={{ fontSize: "0.4em", verticalAlign: "super" }}
-              >
-                ™
-              </sup>
-            </h1>
-            <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-normal text-[#1C1C1C] leading-snug">
+        <div className="max-w-7xl mx-auto">
+          {/* Centered Hero Section with Horizontal Roadmap */}
+          <div className="w-full flex flex-col justify-center items-center">
+            {/* Heading - Centered */}
+            <h2 className="text-lg sm:text-xl md:text-2xl font-normal text-[#1C1C1C] leading-snug mb-4 sm:mb-5 md:mb-6 text-center">
               Your quotation request list is a few clicks away
             </h2>
-
-            <div className="flex flex-col gap-2.5 sm:gap-3 py-3 sm:py-4">
-              {QUOTE_STEPS.map((milestone, index) => (
-                <div key={index} className="flex items-start gap-2 sm:gap-3">
-                  <div className="flex flex-col items-center">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-xs flex-shrink-0">
+            
+            {/* Horizontal Steps Layout with Equal Spacing */}
+            <div className="w-full">
+              {/* Desktop View - Horizontal alignment */}
+              <div className="hidden sm:flex items-start justify-center gap-0">
+                {QUOTE_STEPS.map((milestone, index) => (
+                  <div key={index} className="flex-1 flex flex-col items-center relative">
+                    {/* Connecting Line - Positioned behind circle */}
+                    {index < QUOTE_STEPS.length - 1 && (
+                      <div className="absolute top-5 left-1/2 w-full h-0.5 bg-[#E8E4DA] z-0"></div>
+                    )}
+                    {/* Step Circle - Centered */}
+                    <div className="w-10 h-10 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-base flex-shrink-0 relative z-10 mb-3">
                       {milestone.step}
                     </div>
-                    {index < 2 && (
-                      <div className="w-0.5 h-5 sm:h-6 bg-[#E8E4DA] mt-1"></div>
-                    )}
+                    {/* Step Content - Center aligned */}
+                    <div className="text-center w-full px-2">
+                      <h3 className="text-sm font-medium text-[#1C1C1C] mb-1 text-center">
+                        {milestone.title}
+                      </h3>
+                      <p className="text-xs text-[#5A5A5A] leading-relaxed text-center">
+                        {milestone.desc}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1 pt-0.5">
-                    <h3 className="text-xs sm:text-sm font-medium text-[#1C1C1C] mb-0.5">
-                      {milestone.title}
-                    </h3>
-                    <p className="text-xs text-[#5A5A5A] leading-relaxed">
-                      {milestone.desc}
-                    </p>
+                ))}
+              </div>
+              
+              {/* Mobile View - Vertical alignment */}
+              <div className="flex sm:hidden flex-col gap-4">
+                {QUOTE_STEPS.map((milestone, index) => (
+                  <div key={index} className="flex items-start gap-3 relative">
+                    <div className="flex flex-col items-center">
+                      <div className="w-8 h-8 rounded-full bg-[#a8bba3] text-white flex items-center justify-center font-medium text-sm flex-shrink-0">
+                        {milestone.step}
+                      </div>
+                      {/* Vertical connecting line for mobile */}
+                      {index < QUOTE_STEPS.length - 1 && (
+                        <div className="w-0.5 h-8 bg-[#E8E4DA] my-1"></div>
+                      )}
+                    </div>
+                    <div className="flex-1 pt-1">
+                      <h3 className="text-xs font-medium text-[#1C1C1C] mb-1">
+                        {milestone.title}
+                      </h3>
+                      <p className="text-xs text-[#5A5A5A] leading-relaxed">
+                        {milestone.desc}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-
-          <div className="h-64 sm:h-80 md:h-96 lg:h-[420px] rounded-xl sm:rounded-2xl overflow-hidden border border-[#E8E4DA] bg-white">
-            <img
-              src="/albums/Second page.jpg"
-              alt="Silver manufacturing"
-              className="w-full h-full object-cover"
-              loading="eager"
-            />
           </div>
         </div>
       </section>
@@ -435,78 +499,82 @@ export default function QuotationPage() {
 
             {/* Controls Section - Left: Purity, Right: Action buttons */}
             {filteredProducts.length > 0 && (
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                {/* Left Side: Purity Label and Toggle */}
-                <div className="flex flex-col items-start gap-1">
-                  <span className="text-xs sm:text-sm text-[#6F6F6F] font-medium">
-                    Purity
-                  </span>
-                  <div className="flex items-center gap-0 bg-white border border-[#E8E4DA] rounded-full px-1 min-h-[44px]">
-                    <button
-                      onClick={() => setSelectedPurity("80")}
-                      className={`px-3 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
-                        selectedPurity === "80"
-                          ? "bg-[#a8bba3] text-white"
-                          : "text-[#6F6F6F] hover:bg-gray-100"
-                      }`}
-                    >
-                      80%
-                    </button>
-                    <button
-                      onClick={() => setSelectedPurity("92.5")}
-                      className={`px-3 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
-                        selectedPurity === "92.5"
-                          ? "bg-[#a8bba3] text-white"
-                          : "text-[#6F6F6F] hover:bg-gray-100"
-                      }`}
-                    >
-                      92.5%
-                    </button>
-                  </div>
-                  {/* Note for 92.5% purity - positioned below without affecting toggle */}
-                  {selectedPurity === "92.5" && (
-                    <div className="mt-2 bg-[#F5EFE6] rounded-lg px-3 py-2 max-w-xs">
-                      <p className="text-xs sm:text-sm text-[#5A5A5A] leading-relaxed">
-                        <span className="font-medium">Note:</span> 80% purity items are available from ready stock. 92.5% purity is made to order and requires additional production time.
-                      </p>
+              <div className="flex flex-col gap-3">
+                {/* Top Row: Purity Toggle and Select All Button - Strictly Aligned */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3">
+                  {/* Left Side: Purity Label and Toggle */}
+                  <div className="flex flex-col items-start gap-1">
+                    <span className="text-xs sm:text-sm text-[#6F6F6F] font-medium">
+                      Purity
+                    </span>
+                    <div className="flex items-center gap-0 bg-white border border-[#E8E4DA] rounded-full px-1 min-h-[44px]">
+                      <button
+                        onClick={() => setSelectedPurity("80")}
+                        className={`px-3 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
+                          selectedPurity === "80"
+                            ? "bg-[#a8bba3] text-white"
+                            : "text-[#6F6F6F] hover:bg-gray-100"
+                        }`}
+                      >
+                        80%
+                      </button>
+                      <button
+                        onClick={() => setSelectedPurity("92.5")}
+                        className={`px-3 sm:px-5 py-2.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 h-full flex items-center justify-center ${
+                          selectedPurity === "92.5"
+                            ? "bg-[#a8bba3] text-white"
+                            : "text-[#6F6F6F] hover:bg-gray-100"
+                        }`}
+                      >
+                        92.5%
+                      </button>
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* Right Side: Action Buttons */}
-                <div className="flex items-center gap-2 flex-wrap justify-end">
-                  <button
-                    onClick={selectAllFiltered}
-                    disabled={allFilteredSelected}
-                    className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-sm font-medium transition-all duration-300 min-h-[44px] inline-flex items-center gap-2 ${
-                      allFilteredSelected
-                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        : "bg-[#a8bba3] text-white hover:bg-[#93a991] hover:shadow-lg"
-                    }`}
-                  >
-                    {allFilteredSelected ? (
-                      <>
-                        <span className="text-lg">✓</span>
-                        All Selected
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        Select All
-                      </>
-                    )}
-                  </button>
-
-                  {anyFilteredSelected && (
+                  {/* Right Side: Action Buttons - Aligned with Toggle */}
+                  <div className="flex items-center gap-2 flex-wrap justify-end sm:justify-end w-full sm:w-auto flex-shrink-0">
                     <button
-                      onClick={deselectAllFiltered}
-                      className="px-5 sm:px-6 py-2.5 sm:py-3 border-2 border-[#a8bba3] text-[#a8bba3] rounded-full text-sm font-medium transition-all duration-300 hover:bg-[#a8bba3] hover:text-white min-h-[44px] inline-flex items-center gap-2"
+                      onClick={selectAllFiltered}
+                      disabled={allFilteredSelected}
+                      className={`px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-sm font-medium transition-all duration-300 min-h-[44px] inline-flex items-center gap-2 ${
+                        allFilteredSelected
+                          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                          : "bg-[#a8bba3] text-white hover:bg-[#93a991] hover:shadow-lg"
+                      }`}
                     >
-                      <X className="w-4 h-4" />
-                      Deselect All
+                      {allFilteredSelected ? (
+                        <>
+                          <span className="text-lg">✓</span>
+                          All Selected
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          Select All
+                        </>
+                      )}
                     </button>
-                  )}
+
+                    {anyFilteredSelected && (
+                      <button
+                        onClick={deselectAllFiltered}
+                        className="px-5 sm:px-6 py-2.5 sm:py-3 border-2 border-[#a8bba3] text-[#a8bba3] rounded-full text-sm font-medium transition-all duration-300 hover:bg-[#a8bba3] hover:text-white min-h-[44px] inline-flex items-center gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        Deselect All
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Bottom Row: Notification Box (only shows for 92.5%) */}
+                {selectedPurity === "92.5" && (
+                  <div className="bg-[#F5EFE6] rounded-lg px-3 py-2 max-w-xs w-full sm:w-auto">
+                    <p className="text-xs sm:text-sm text-[#5A5A5A] leading-relaxed">
+                      <span className="font-medium">Note:</span> 80% purity items are available from ready stock. 92.5% purity is made to order and requires additional production time.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -527,31 +595,31 @@ export default function QuotationPage() {
                 const isInQuote = quoteItems.some((item) => item.product.id === product.id);
                 
                 return (
-                  <div
-                    key={product.id}
-                    className="bg-white rounded-lg sm:rounded-xl overflow-hidden border-2 border-[#E8E4DA] hover:border-[#a8bba3] hover:shadow-xl transition-all duration-300 group"
-                  >
-                    <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden bg-gradient-to-br from-[#FDFBF7] to-[#F5F5F5] flex items-center justify-center p-3 sm:p-4">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110 max-w-full"
-                        loading="lazy"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "/logos/Main logo.png";
-                          target.className =
-                            "w-full h-full object-contain opacity-30";
-                        }}
-                      />
-                    </div>
-                    <div className="p-4 sm:p-5">
+                <div
+                  key={product.id}
+                  className="bg-white rounded-lg sm:rounded-xl overflow-hidden border-2 border-[#E8E4DA] hover:border-[#a8bba3] hover:shadow-xl transition-all duration-300 group"
+                >
+                  <div className="relative h-48 sm:h-52 md:h-56 overflow-hidden bg-gradient-to-br from-[#FDFBF7] to-[#F5F5F5] flex items-center justify-center p-3 sm:p-4">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110 max-w-full"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/logos/Main logo.png";
+                        target.className =
+                          "w-full h-full object-contain opacity-30";
+                      }}
+                    />
+                  </div>
+                  <div className="p-4 sm:p-5">
                       <h3 className="text-sm sm:text-base font-normal text-[#1C1C1C] mb-3 min-h-[40px] sm:min-h-[48px] text-center">
-                        {product.name}
-                      </h3>
+                      {product.name}
+                    </h3>
                       <div className="relative">
-                        <button
-                          onClick={() => addToQuote(product)}
+                    <button
+                      onClick={() => addToQuote(product)}
                           disabled={isInQuote}
                           className={`w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2 min-h-[44px] ${
                             isInQuote
@@ -566,13 +634,13 @@ export default function QuotationPage() {
                             </>
                           ) : (
                             <>
-                              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              Add to Quote
+                      <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Add to Quote
                             </>
                           )}
-                        </button>
-                      </div>
-                    </div>
+                    </button>
+                  </div>
+                </div>
                   </div>
                 );
               })}
@@ -756,7 +824,7 @@ export default function QuotationPage() {
                     setFormData({ ...formData, designation: e.target.value })
                   }
                   className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-[#E8E4DA] rounded-lg focus:outline-none focus:border-[#a8bba3] transition-colors text sm sm:text-base"
-                  placeholder="e.g. Owner, Manager, Buyer"
+                  placeholder="e.g. Owner, Manager"
                 />
               </div>
 
@@ -794,10 +862,11 @@ export default function QuotationPage() {
 
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-[#1A1A1A] mb-1.5 sm:mb-2">
-                  GSTIN (Optional)
+                  GSTIN *
                 </label>
                 <input
                   type="text"
+                  required
                   value={formData.gstin}
                   onChange={(e) =>
                     setFormData({ ...formData, gstin: e.target.value })

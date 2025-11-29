@@ -52,6 +52,7 @@ export const RETAILER_LOGOS = [
 
 // Factory Images
 export const FACTORY_IMAGES = [
+  '/albums/Second page.jpg',
   '/Hands that make Silver Crafts/silver crafts1217.jpg',
   '/Hands that make Silver Crafts/silver crafts1286.jpg',
   '/Hands that make Silver Crafts/silver crafts1301.jpg',
